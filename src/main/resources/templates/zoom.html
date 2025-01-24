@@ -4,124 +4,192 @@
     <meta charset="UTF-8">
     <title>Main</title>
 </head>
+<STYLE>
+    span {
+        white-space: pre;
+    }
+</STYLE>
 <body style="padding: 8px; box-sizing: border-box;">
-    <h1>zoom.html</h1>
-    <div th:if="${messages !=null}" style="background-color: rgb(255,0,0,0.5); width: 750px; border-radius: 5px; padding: 0.5em">
-       <strong th:text="${messages}"></strong>
-    </div>
-    <ol>
-        <li>
-            <h3>client_credentials 토큰 발급요청</h3>
-            <form action="/zoom/client_credentials/token">
-                <button type="submit"><span>/token</span></button>
-                <span th:if="${!clientToken.isBlank() && isSuccess}">인증 성공!
-                        <br> 받은 인증 코드: <strong th:text="${clientToken}"></strong>
-                </span>
-                <span th:if="${clientToken.isBlank()}">미인증
-                </span>
-            </form>
-        </li>
-        <li>
-            <h3>account_credentials 토큰 발급요청</h3>
-            <form action="/zoom/account_credentials/token">
-                <button type="submit"><span>/token</span></button>
-                <span th:if="${!accountToken.isBlank() && isSuccess}">인증 성공!
-                        <br> 받은 인증 코드: <strong th:text="${accountToken}"></strong>
-                </span>
-                <span th:if="${accountToken.isBlank()}">미인증
-                </span>
-            </form>
-        </li>
-        <li>
-            <h3>user_access 토큰 발급요청</h3>
+    <div class="content" style="width: 95%">
+        <h1>zoom.html</h1>
+        <div th:if="${messages !=null}" style="background-color: rgb(255,0,0,0.5); width: 750px; border-radius: 5px; padding: 0.5em">
+           <strong th:text="${messages}"></strong>
+        </div>
+        <h5 style="color: firebrick"> 주의사항 : 사용자 권한과 서버 권한은 동시사용 불가 </h5>
+        <ol>
+            <li>
+                <h3>CLIENT_CREDENTIALS_generalApp 토큰 발급요청 : 사용자 권한</h3>
+                <form action="/zoom/client_credentials/token">
+                    <button type="submit"><span>/client_credentials/token</span></button>
+                </form>
+                <div>
+                    <ul>
+                        <li>
+                            <p>
+                                <span th:if="${!clientToken.isBlank() && isSuccess}"> clientToken 인증 성공!
+                                        <br><strong th:text="${clientToken}"></strong>
+                                </span>
+                                        <span th:if="${clientToken.isBlank()}">clientToken 미인증
+                                </span>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span th:if="${!authorizationCode.isBlank() && isSuccess}"> autoCode 인증 성공!
+                                    <br><strong th:text="${authorizationCode}"></strong>
+                                </span>
+                                <span th:if="${authorizationCode.isBlank()}">autoCode 미인증
+                                </span>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span th:if="${!accessToken.isBlank() && isSuccess}"> accessToken 인증 성공!
+                                    <br><strong th:text="${accessToken}"></strong>
+                                </span>
+                                <span th:if="${accessToken.isBlank()}">accessToken 미인증
+                                </span>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span th:if="${!refreshToken.isBlank() && isSuccess}"> refreshToken 인증 성공!
+                                    <br><strong th:text="${refreshToken}"></strong>
+                                </span>
+                                <span th:if="${refreshToken.isBlank()}">refreshToken 미인증
+                                </span>
+                            </p>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h3>SERVER_CREDENTIALS_serverApp 토큰 발급요청 : 사용자 인증이 필요하지 않은 경우 </h3>
+                <form action="/zoom/account_credentials/token">
+                    <button type="submit"><span>/account_credentials/token</span></button>
+                </form>
+                <div>
+                    <ul>
+                        <li>
+                                <p>
+                                    <span th:if="${!accountToken.isBlank() && isSuccess}"> accountToken 인증 성공!
+                                            <br><strong th:text="${accountToken}"></strong>
+                                    </span>
+                                    <span th:if="${accountToken.isBlank()}">accountToken 미인증
+                                    </span>
+                                </p>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h3> 권한관련 모든 정보 리셋</h3>
+                <form action="/zoom/resetToken">
+                    <button type="submit"><span>/zoom/resetToken</span></button>
+                </form>
+            </li>
+            <li>
+                <h3> 사용자 정보 조회 api 호출</h3>
+                <form id="zoomApi">
+                    <p>
+                        <label for="userId">User ID:</label>
+                        <input type="text" name="userId" id="userId" style="width: 200px" value="jisu_um@arisys.co.kr">
+                    </p>
+                    <p>
+                        <label for="callLogId">Call ID:</label>
+                        <input type="text" name="callLogId" id="callLogId" style="width: 200px" value="">
+                    </p>
 
-            <ol>
-                <li>
-                    <h4>zoom 에 권한코드 요청</h4>
-                    <form action="/zoom/authorize">
-                        <button type="submit"><span>/authorize</span></button>
-                    </form>
-                    <div>
-                        <p>
-                            <span th:if="${!authorizationCode.isBlank() && isSuccess}">인증 성공!
-                                <br> 받은 인증 코드: <strong th:text="${authorizationCode}"></strong>
-                            </span>
-                            <span th:if="${authorizationCode.isBlank()}">미인증
-                            </span>
-                        </p>
-                    </div>
-                </li>
-                <li>
-                    <h4>권한코드로 user_access 요청</h4>
-                    <form action="/zoom/token">
-                        <button type="submit" th:attr="disabled=${authorizationCode.isBlank()}"><span>/token</span></button>
-                        <span th:if="${authorizationCode.isBlank()}">권한코드를 먼저 발급받으세요.</span>
-                    </form>
-                    <div>
-                        <p>
-                            <span th:if="${!accessToken.isBlank() && isSuccess}">인증 성공!
-                                <br> 받은 인증 코드: <strong th:text="${accessToken}"></strong>
-                            </span>
-                            <span th:if="${accessToken.isBlank()}">미인증
-                            </span>
-                        </p>
-                    </div>
-                </li>
-            </ol>
+                    <ul>
+                        <li>
+                            <p>
+                                <span> 개인 조회는 userId 값 입력, 목록조회에는 userId 불필요 </span><br>
+                                <button type="button" onclick="submitForm('/zoom/users')" th:attr="disabled=${!isSuccess}">/zoom/users</button>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span> userId 값 필수</span><br>
+                                <button type="button" onclick="submitForm('/zoom/schedulers', 'userId')" th:attr="disabled=${!isSuccess}">/zoom/schedulers</button>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span> userId 값 필수</span><br>
+                                <button type="button" onclick="submitForm('/zoom/meetings', 'userId')" th:attr="disabled=${!isSuccess}">/zoom/meetings</button>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span> server_credentials 필수 </span><br>
+                                <button type="button" onclick="submitForm('/zoom/phone/call_history')" th:attr="disabled=${accountToken.isBlank()}">/zoom/phone/call_history</button>
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <span> callId 값 필수 & server_credentials 필수 </span><br>
+                                <button type="button" onclick="submitForm('/zoom/phone/call_history_detail', 'callLogId')" th:attr="disabled=${accountToken.isBlank()}">/zoom/phone/call_history_detail</button>
+                            </p>
+                        </li>
+                    </ul>
+                </form>
+                <div>
+                    <script>
+                        function checkValidateParam(paramName) {
+                            const param = document.getElementById(paramName).value;
 
-        </li>
-        <li>
-            <h3> 권한관련 모든 정보 리셋</h3>
-            <form action="/zoom/resetToken">
-                <button type="submit"><span>/zoom/resetToken</span></button>
-            </form>
-        </li>
-        <li>
-            <h3> 세부 정보 조회 api 호출</h3>
-            <form id="zoomApi">
-                <label for="userId">User ID:</label>
-                <input type="text" name="userId" id="userId" style="width: 200px" value="jisu_um@arisys.co.kr">
-                <button type="submit" formaction="/zoom/users" th:attr="disabled=${!isSuccess}">/zoom/users</button>
-                <button type="submit" formaction="/zoom/schedulers" th:attr="disabled=${!isSuccess}">/zoom/schedulers</button>
-                <button type="submit" formaction="/zoom/meetings" th:attr="disabled=${!isSuccess}">/zoom/meetings</button>
-            </form>
-            <div>
-                <script>
-                    // 버튼에 userId 유효성확인 이벤트리스너 등록
-                    const needUserIdButtons = document.querySelectorAll('[formaction="/zoom/schedulers"],[formaction="/zoom/meetings"]');
-                    needUserIdButtons.forEach(button => {
-                        button.addEventListener('click', function(event) {
-                            return checkValidateUserId(event);
-                        });
-                    })
-
-                    function checkValidateUserId(event) {
-                        event.preventDefault();
-                        const userId = document.getElementById("userId").value;
-
-                        // userId가 비어 있으면 경고 메시지를 띄우고, 다른 동작을 하지 않음
-                        if (!userId) {
-                            event.preventDefault();
-                            alert("User ID is required!");
+                            // param 값이 비어 있거나 공백이면 안내창을 띄움
+                            if (!param || param==="") {
+                                alert(paramName + "를 입력하세요.");
+                                return false;
+                            }
+                            return true;
                         }
-                    }
-                </script>
-                <p>
-                    <span th:if="${users != null}">조회 성공!
-                        <br> 받은 사용자 정보: <strong th:text="${users != null ? users : ''}"></strong>
-                    </span>
-                    <span th:if="${schedulers!= null}">조회 성공!
-                        <br> 받은 스케줄 정보: <strong th:text="${schedulers}"></strong>
-                    </span>
-                    <span th:if="${meetings != null}">조회 성공!
-                        <br> 받은 회의 정보: <strong th:text="${meetings}"></strong>
-                    </span>
-                </p>
-            </div>
-        </li>
 
+                        function submitForm(action, paramName) {
+                            console.log("submitForm : ", action, paramName);
 
-    </ol>
+                            // param 유효성검증 완료시에만 서버에 요청을 보냄
+                            if(paramName == null || checkValidateParam(paramName)){
+                                const form = document.getElementById('zoomApi');
+                                form.action = action;
+                                form.submit();
+                            }
+                        }
+                    </script>
+                </div>
+            </li>
+            <li>
+                <h3> 정보 조회 결과</h3>
+                <div>
+                    <p>
+                        <span th:if="${users != null}">users 조회 성공!
+                            <br><span th:text="${users}"></span>
+                        </span>
+                        <span th:if="${schedulers != null}">schedulers 조회 성공!
+                            <br><span th:text="${schedulers}"></span>
+                        </span>
+                        <span th:if="${meetings != null}">meetings 조회 성공!
+                            <br><span th:text="${meetings}"></span>
+                        </span>
+                        <span th:if="${logs != null}">logs 조회 성공!
+                            <br><span th:text="${logs}"></span>
+                        </span>
+                        <span th:if="${log != null}">log 조회 성공!
+                            <br><span th:text="${log}"></span>
+                        </span>
+                    </p>
+                </div>
+            </li>
 
+        </ol>
+    </div>
 </body>
+<style>
+    strong {
+        white-space: normal; /* 줄바꿈 허용 */
+        word-wrap: break-word; /* 긴 단어 줄바꿈 */
+        overflow-wrap: break-word; /* 긴 단어 줄바꿈 (표준) */
+    }
+</style>
 </html>
