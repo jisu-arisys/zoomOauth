@@ -49,8 +49,10 @@ event_ts=1759206155113}
 
 ### 화면
 
-1. http://localhost:8080/zoom 에서 /account_credentials/token 직접 요청
+1. ZoomController 생성시점에 서버토큰 자동발급
 2. http://localhost:8080/list 에서 페이지 로드시점에 ajax('/api/users') 요청으로 전체 사용자 목록을 불러와 카드 생성 (97명)
-3. 사용자의 상태 변경시 웹훅 이벤트를 받으면, queue 에 담았다가, 클라이언트에게 websocket 으로 전달 -> 수신한 클라이언트의 화면의 상태값 변경됨.
+3. 백엔드와 클라이언트 websocket 연결
+4. 사용자의 상태 변경시 웹훅 이벤트를 백엔드가 받아서 queue 에 담았다가, 클라이언트에게 websocket 으로 전달
+5. 수신한 클라이언트의 화면의 상태값 변경됨.
 
 문제 : 최초 사용자 정보 호출시 모든 사용자의 상태가 default: active 로 표기되는 문제가 있음.

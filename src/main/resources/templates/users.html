@@ -126,6 +126,24 @@
 
     let stompClient = null;
 
+    function getList() {
+        // 초기 사용자 데이터는 REST API로 가져오기
+        $.ajax({
+            url: '/api/users?userId=',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data, status, xhr) {
+                console.log("응답 성공:", data);
+                if (data) {
+                    initCard(data);
+                }
+            },
+            error: function (data, status, err) {
+                console.log("error : ", data, status, err)
+            }
+        });
+    }
+
     function connect() {
         const socket = new SockJS('/ws');  // 서버의 STOMP 엔드포인트
         stompClient = Stomp.over(socket);
@@ -141,25 +159,10 @@
                 console.log('Received:', data);
                 updateStatus(data);
             });
-
-            // 초기 사용자 데이터는 REST API로 가져오기
-            $.ajax({
-                url: '/api/users?userId=',
-                method: 'GET',
-                dataType: 'json',
-                success: function (data, status, xhr) {
-                    console.log("응답 성공:", data);
-                    if (data) {
-                        initCard(data);
-                    }
-                },
-                error: function (data, status, err) {
-                    console.log("error : ", data, status, err)
-                }
-            });
         });
     }
 
+    getList();
     connect();
 
 </script>

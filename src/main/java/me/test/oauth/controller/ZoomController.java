@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.*;
@@ -27,6 +29,7 @@ import java.util.Map;
 @Controller()
 @RequestMapping("/zoom")
 @PropertySource("classpath:zoom.properties")
+@Slf4j
 public class ZoomController {
 
     /** HTTP 통신을 위한 도구로 REST full API 웹 서비스와의 상호작용을 쉽게 외부 도메인에서 데이터를 가져오거나 전송할 때 사용되는 스프링 프레임워크의 클래스**/
@@ -62,6 +65,15 @@ public class ZoomController {
 
 //    사용자 권한과 서버 권한의 공동사용.
     private HttpHeaders tokenHeaders = new HttpHeaders();
+
+    @PostConstruct
+    public void init() {
+        try {
+            accountCredentials(null);
+        }catch (Exception e) {
+            log.info("accountCredentials model is null, but get token success : {}", e.getMessage());
+        }
+    }
 
     /** 사용자 권한을 받기위한 헤더 **/
     private HttpHeaders getClientHeaders() {
