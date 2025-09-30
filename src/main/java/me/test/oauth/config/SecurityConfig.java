@@ -26,6 +26,10 @@ public class SecurityConfig{
                         .requestMatchers("/webhook/zoom/**").permitAll()
                         .requestMatchers("/hello").permitAll()
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/list/**").permitAll()
+                        .requestMatchers("/js/**").permitAll()
+                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

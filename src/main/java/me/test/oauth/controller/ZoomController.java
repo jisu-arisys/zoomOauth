@@ -22,7 +22,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-/**controller 어노테이션에 의해 스프링 빈으로 등록 되어야, 컴포넌트 스캔의 대상이 되어 value 어노테이션이 동작한다.**/
+/** zoom.html 화면 및 해당 페이지의 요청(zoom api)을 처리하는 컨트롤러 **/
+/** controller 어노테이션에 의해 스프링 빈으로 등록 되어야, 컴포넌트 스캔의 대상이 되어 value 어노테이션이 동작한다.**/
 @Controller()
 @RequestMapping("/zoom")
 @PropertySource("classpath:zoom.properties")
@@ -35,7 +36,7 @@ public class ZoomController {
     private String zoomOauthEndpoint;
     /** api 호출용 base url **/
     @Value("${zoom.api.base.url}")
-    private String zoomApiBaseUrl;
+    String zoomApiBaseUrl;
 
 
 //    사용자 권한받기
@@ -333,7 +334,7 @@ public class ZoomController {
     public void getApi(String getUrl, String attributeName, Model model) {
         // 요청 가능여부 검증
         if(tokenHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", getUrl);
+            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
             return;
         }
 
@@ -341,7 +342,7 @@ public class ZoomController {
             HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(tokenHeaders);
             // REST API 호출
             ResponseEntity<String> response = restTemplate.exchange(
-                    getUrl,
+                    zoomApiBaseUrl + getUrl,
                     HttpMethod.GET,
                     tokenRequestEntity,
                     String.class
@@ -366,6 +367,38 @@ public class ZoomController {
         setModelObject(model);
     }
 
+    /** zoop api 응답값만 JSON String 으로 반환하는 함수 **/
+    public String getApi(String getUrl) {
+        String profix = "fail";
+        // 요청 가능여부 검증
+        if(tokenHeaders == null) {
+            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
+            return profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl;
+        }
+
+        try {
+            HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(tokenHeaders);
+            // REST API 호출
+            ResponseEntity<String> response = restTemplate.exchange(
+                    zoomApiBaseUrl + getUrl,
+                    HttpMethod.GET,
+                    tokenRequestEntity,
+                    String.class
+            );
+
+            // 응답 바디 JSON 형로 출력 : 4개의 공백으로 들여쓰기
+            ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+            Object jsonObject = objectMapper.readValue(response.getBody(), Object.class);
+            String prettyJsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
+
+            System.out.println(prettyJsonString);
+            return prettyJsonString;
+
+        } catch (Exception e) {
+            return profix + e.toString();
+        }
+    }
+
 
     /** 지정한 사용자의 정보 혹은 모든 사용자의 정보를 조회합니다.
      * <br><a href="https://developers.zoom.us/docs/api/users/#tag/users/GET/users/">...</a>{userId}
@@ -374,7 +407,7 @@ public class ZoomController {
      * **/
     @GetMapping("/users")
     public String getUsers(@RequestParam String userId, Model model) {
-        String usersUrl = zoomApiBaseUrl + "/users/" + userId;
+        String usersUrl = "/users/" + userId;
         System.out.println(usersUrl);
         getApi(usersUrl, "users", model);
         return "zoom";
@@ -383,7 +416,7 @@ public class ZoomController {
     /**사용자의 모든 스케줄러를 나열합니다. **/
     @GetMapping("/schedulers")
     public String getScheduledMeetingIdZoomApi(@RequestParam String userId, Model model) {
-        String schedulesUrl = zoomApiBaseUrl + "/users/" + userId + "/schedulers";
+        String schedulesUrl = "/users/" + userId + "/schedulers";
         System.out.println(schedulesUrl);
         getApi(schedulesUrl, "schedulers", model);
         return "zoom";
@@ -392,7 +425,7 @@ public class ZoomController {
     /**사용자의 모든 회의정보를 검색합니다. **/
     @GetMapping("/meetings")
     public String getMeetingIdZoomApi(@RequestParam String userId, Model model) {
-        String meetingUrl = zoomApiBaseUrl + "/users/" + userId + "/meetings";
+        String meetingUrl = "/users/" + userId + "/meetings";
         System.out.println(meetingUrl);
         getApi(meetingUrl, "meetings", model);
         return "zoom";
@@ -401,7 +434,7 @@ public class ZoomController {
     /** 전체 콜 목록을 조회합니다. **/
     @GetMapping("/phone/call_history")
     public String getCallHistoriesZoomApi(Model model) {
-        String callsUrl = zoomApiBaseUrl + "/phone/call_history";
+        String callsUrl = "/phone/call_history";
         System.out.println(callsUrl);
         getApi(callsUrl, "logs", model);
         return "zoom";
@@ -410,7 +443,7 @@ public class ZoomController {
     /** 콜 하나에 대한 자세한 정보를 조회합니다. **/
     @GetMapping("/phone/call_history_detail")
     public String getCallDetailZoomApi(@RequestParam String callLogId, Model model) {
-        String callUrl = zoomApiBaseUrl + "/phone/call_history_detail/" + callLogId;
+        String callUrl = "/phone/call_history_detail/" + callLogId;
         System.out.println(callUrl);
         getApi(callUrl, "log", model);
         return "zoom";

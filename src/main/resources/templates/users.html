@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Softphone Client</title>
+    <script src="/js/sockjs.min.js"></script>
+    <script src="/js/stomp.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --num-rows: 10;
+            --num-cols: 4;
+        }
+
+        .green {
+            color: rgba(178, 202, 148, 0.5);
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .darkgreen {
+            color: rgba(8, 81, 23, 0.5);
+        }
+
+        .border1 {
+            background: rgba(178, 202, 148, 0.1);
+            border-radius: 10px;
+            width: 800px;
+            height: 700px;
+
+            position: relative;
+            display: grid;
+            grid-template-rows: repeat(var(--num-rows), 1fr);
+            grid-template-columns: repeat(var(--num-cols), 1fr);
+        }
+
+        .card {
+            background: rgba(244, 237, 186, 0.85);
+            border-radius: 10px;
+            width: 160px;
+            height: 50px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 5px;
+            justify-content: center;
+            align-items: center;
+            display: block;
+            line-height: 24px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            font-size: 10px;
+            width: 60px;
+            height: 30px;
+            margin: 5px;
+        }
+
+    </style>
+</head>
+<body>
+<h1>Zoom users 상태카드</h1>
+<div style="display: none">
+    <form id="zoomApi">
+        <p>
+            <label for="userId">User ID:</label>
+            <input type="text" name="userId" id="userId" style="width: 200px" value="jisu_um@arisys.co.kr">
+        </p>
+    </form>
+</div>
+<h5>web socket status <span id="establish" style="color: darkred; font-weight: bold">ON</span></h5>
+<div id="board" class="border1">
+    <div class="card" id="cardItem">
+        <div class="darkgreen">USERNAME</div>
+        <div class="green">ONLINE</div>
+    </div>
+</div>
+<script>
+    function checkValidateParam(paramName) {
+        const param = document.getElementById(paramName).value;
+
+        // param 값이 비어 있거나 공백이면 안내창을 띄움
+        if (!param || param === "") {
+            alert(paramName + "를 입력하세요.");
+            return false;
+        }
+        return true;
+    }
+
+    function submitForm(action, paramName) {
+        console.log("submitForm : ", action, paramName);
+
+        // param 유효성검증 완료시에만 서버에 요청을 보냄
+        if (paramName == null || checkValidateParam(paramName)) {
+            const form = document.getElementById('zoomApi');
+            form.action = action;
+            form.submit();
+        }
+    }
+
+    const $board = document.getElementById('board');
+    const $cardItem = document.getElementById("cardItem");
+
+    function initCard(data) {
+        for (const datum of data) {
+            const $card = $cardItem.cloneNode(true);
+            $card.id = datum.email;
+            $card.querySelector(".darkgreen").innerText = datum.display_name;
+            $card.querySelector(".green").innerText = datum.status;
+            $board.appendChild($card);
+        }
+        $cardItem.remove();
+    }
+
+    function updateStatus(data) {
+        // 카드 찾기 (email 기준)
+        const $card = document.getElementById(data.email);
+        if ($card) {
+            $card.querySelector(".green").innerText = data.presence_status;
+        } else {
+            console.warn("해당 사용자를 찾을 수 없습니다:", data.email);
+        }
+    }
+
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');  // 서버의 STOMP 엔드포인트
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, (frame) => {
+            console.log('Connected: ' + frame);
+            document.getElementById("establish").innerText = "CONNECTED";
+            document.getElementById("establish").style.color = "green";
+
+            // 상태 변경 이벤트 구독
+            stompClient.subscribe('/topic/user-status', (message) => {
+                const data = JSON.parse(message.body);
+                console.log('Received:', data);
+                updateStatus(data);
+            });
+
+            // 초기 사용자 데이터는 REST API로 가져오기
+            $.ajax({
+                url: '/api/users?userId=',
+                method: 'GET',
+                dataType: 'json',
+                success: function (data, status, xhr) {
+                    console.log("응답 성공:", data);
+                    if (data) {
+                        initCard(data);
+                    }
+                },
+                error: function (data, status, err) {
+                    console.log("error : ", data, status, err)
+                }
+            });
+        });
+    }
+
+    connect();
+
+</script>
