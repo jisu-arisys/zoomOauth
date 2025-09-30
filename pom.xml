@@ -10,9 +10,9 @@
 	</parent>
 	<groupId>me.test</groupId>
 	<artifactId>oauth</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<name>oauth_zoom</name>
-	<description>oauth jwt  project for Spring Boot</description>
+	<description>oauth jwt project for Spring Boot</description>
 	<url/>
 	<licenses>
 		<license/>
