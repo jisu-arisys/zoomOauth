@@ -21,3 +21,23 @@ values (1, 'ROLE_USER'),
        (2, 'ROLE_USER'),
        (2, 'WRITE'),
        (3, 'ROLE_USER');
+
+-- 1. 테이블 생성
+CREATE TABLE IF NOT EXISTS userlist (
+     id VARCHAR(50) PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    display_name VARCHAR(100),
+    email VARCHAR(100),
+    type INT,
+    timezone VARCHAR(50),
+    verified INT,
+    dept VARCHAR(100),
+    created_at TIMESTAMP,
+    last_login_time TIMESTAMP,
+    last_client_version VARCHAR(50),
+    language VARCHAR(10),
+    status VARCHAR(20),
+    role_id VARCHAR(10),
+    user_created_at TIMESTAMP
+    );

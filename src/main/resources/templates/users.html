@@ -8,7 +8,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         :root {
-            --num-rows: 10;
             --num-cols: 4;
         }
 
@@ -23,16 +22,15 @@
             color: rgba(8, 81, 23, 0.5);
         }
 
-        .border1 {
+        .border {
             background: rgba(178, 202, 148, 0.1);
             border-radius: 10px;
             width: 800px;
-            height: 700px;
-
+            padding: 10px;
             position: relative;
             display: grid;
-            grid-template-rows: repeat(var(--num-rows), 1fr);
             grid-template-columns: repeat(var(--num-cols), 1fr);
+            place-items: center;
         }
 
         .card {
@@ -43,9 +41,6 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             padding: 15px;
             margin-bottom: 5px;
-            justify-content: center;
-            align-items: center;
-            display: block;
             line-height: 24px;
         }
 
@@ -58,20 +53,60 @@
             margin: 5px;
         }
 
+        .sticky {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: rgb(255, 255, 255);
+        }
+
+        .info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .updated {
+            color: #cf3701;
+            font-weight: bold;
+        }
+
     </style>
 </head>
 <body>
-<h1>Zoom users 상태카드</h1>
-<div style="display: none">
-    <form id="zoomApi">
-        <p>
+<header class="sticky">
+    <h1>Zoom users 상태카드</h1>
+    <div>
+        <form id="zoomApi">
             <label for="userId">User ID:</label>
-            <input type="text" name="userId" id="userId" style="width: 200px" value="jisu_um@arisys.co.kr">
-        </p>
-    </form>
-</div>
-<h5>web socket status <span id="establish" style="color: darkred; font-weight: bold">ON</span></h5>
-<div id="board" class="border1">
+            <input type="text" name="userId" id="userId" style="width: 200px" value="t2bS3bJKRamtTrbWCKMVtA">
+            <label for="status">Status</label>
+<!--                동일 상태인 경우, 요청은 성공해도 변경 이벤트는 발생하지 않음-->
+            <select name="status" id="status">
+                <option value="Available">대화가능</option>
+                <option value="Busy">바쁨</option>
+                <option value="Do_Not_Disturb">방해금지</option>
+                <option value="Away">자리비움</option>
+                <option value="Out_of_Office">부재중</option>
+
+                <option value="In_Calendar_Event">In a calendar event</option>
+                <option value="Presenting">Presenting</option>
+                <option value="In_A_Zoom_Meeting">In a Zoom meeting</option>
+                <option value="On_A_Call">On a call</option>
+            </select>
+            <button class="btn" type="button" onclick="changeStatus()">상태변경</button>
+        </form>
+        <div class="info">
+            <ul>
+                <li>동일 상태인 경우, 요청은 성공해도 변경 이벤트는 발생하지 않음.</li>
+                <li>영문 상태는 실제 동작중이 아니므로 Available 로 전환됨.</li>
+            </ul>
+        </div>
+    </div>
+    <h5>web socket status <span id="establish" style="color: darkred; font-weight: bold">ON</span></h5>
+</header>
+
+<div id="board" class="border">
     <div class="card" id="cardItem">
         <div class="darkgreen">USERNAME</div>
         <div class="green">ONLINE</div>
@@ -89,17 +124,30 @@
         return true;
     }
 
-    function submitForm(action, paramName) {
-        console.log("submitForm : ", action, paramName);
+    function changeStatus (){
+        if(checkValidateParam('userId')){
+            const userId = document.getElementById('userId').value;
+            const status = document.getElementById('status').value;
+            const jsonBody = JSON.stringify({ "status": status });
 
-        // param 유효성검증 완료시에만 서버에 요청을 보냄
-        if (paramName == null || checkValidateParam(paramName)) {
-            const form = document.getElementById('zoomApi');
-            form.action = action;
-            form.submit();
+            const url = '/api/users/'+ userId +'/presence_status';
+            $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json; charset=UTF-8',
+                dataType: 'text',
+                data: jsonBody,
+                success: function (data) {
+                    console.log("응답 :", data);
+                },
+                error: function (data, status, err) {
+                    console.log("error : ", data, status, err)
+                }
+            });
         }
     }
 
+    const $userId = document.getElementById('userId');
     const $board = document.getElementById('board');
     const $cardItem = document.getElementById("cardItem");
 
@@ -107,8 +155,14 @@
         for (const datum of data) {
             const $card = $cardItem.cloneNode(true);
             $card.id = datum.email;
+            $card.dataset.id = datum.id;
             $card.querySelector(".darkgreen").innerText = datum.display_name;
             $card.querySelector(".green").innerText = datum.status;
+
+            $card.addEventListener("click", function () {
+                $userId.value = datum.id;
+            });
+
             $board.appendChild($card);
         }
         $cardItem.remove();
@@ -118,7 +172,9 @@
         // 카드 찾기 (email 기준)
         const $card = document.getElementById(data.email);
         if ($card) {
-            $card.querySelector(".green").innerText = data.presence_status;
+            const $status = $card.querySelector(".green")
+            $status.innerText = data.presence_status;
+            $status.classList.add("updated");
         } else {
             console.warn("해당 사용자를 찾을 수 없습니다:", data.email);
         }
@@ -129,12 +185,12 @@
     function getList() {
         // 초기 사용자 데이터는 REST API로 가져오기
         $.ajax({
-            url: '/api/users?userId=',
+            url: '/api/userlist',
             method: 'GET',
-            dataType: 'json',
+            dataType: 'json', // 서버에서 반환하는 List<UserList>를 JSON으로 처리
             success: function (data, status, xhr) {
                 console.log("응답 성공:", data);
-                if (data) {
+                if (data.length > 0) {
                     initCard(data);
                 }
             },

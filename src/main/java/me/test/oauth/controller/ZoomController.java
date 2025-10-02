@@ -66,6 +66,8 @@ public class ZoomController {
 //    사용자 권한과 서버 권한의 공동사용.
     private HttpHeaders tokenHeaders = new HttpHeaders();
 
+    private HttpHeaders postHeaders = new HttpHeaders();
+
     @PostConstruct
     public void init() {
         try {
@@ -102,6 +104,10 @@ public class ZoomController {
         tokenHeaders = new HttpHeaders();
         tokenHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         tokenHeaders.setBearerAuth(token);
+
+        postHeaders = new HttpHeaders();
+        postHeaders.setContentType(MediaType.APPLICATION_JSON);
+        postHeaders.setBearerAuth(token);
     }
 
     private void setModelObject(Model model) {
@@ -405,6 +411,41 @@ public class ZoomController {
 
             System.out.println(prettyJsonString);
             return prettyJsonString;
+
+        } catch (Exception e) {
+            return profix + e.toString();
+        }
+    }
+
+    /** zoop api 응답값만 JSON String 으로 반환하는 함수 **/
+    public String postApi(String url, Map<String, Object> bodyMap) {
+        log.info("[test]postApi : {}", bodyMap);
+        String profix = "fail";
+        String postUrl = zoomApiBaseUrl + url;
+        // 요청 가능여부 검증
+        if(postHeaders == null) {
+            System.out.printf("tokenHeaders is null. fail to get api %s\n", postUrl);
+            return profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl;
+        }
+
+        try {
+            HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(bodyMap,postHeaders);
+            log.info("[test]postApi : {}", tokenRequestEntity);
+            // REST API 호출
+            ResponseEntity<String> response = restTemplate.exchange(
+                    postUrl,
+                    HttpMethod.PUT,
+                    tokenRequestEntity,
+                    String.class
+            );
+
+            if(response.getStatusCode() == HttpStatus.NO_CONTENT){
+                return "success";
+            } else if (response.hasBody()) {
+                return response.getBody(); // 실제 JSON 응답이 있으면 전달
+            } else {
+                return profix;
+            }
 
         } catch (Exception e) {
             return profix + e.toString();
