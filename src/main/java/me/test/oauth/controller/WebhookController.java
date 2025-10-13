@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.common.SHA256Cipher;
+import me.test.oauth.entity.UserList;
+import me.test.oauth.service.UserListService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -20,16 +22,18 @@ import java.util.Map;
 @PropertySource("classpath:zoom.properties")
 @Slf4j
 public class WebhookController {
-
     /** zoom webhook secret token : 검증을 위한 해싱 솔트키 **/
     @Value("${zoom.webhook.secret.token}")
-    private final String secretToken = "NbSl-uPgSEqW_eHMFUdewA";
+    private String secretToken;
 
     /** Node.js 기준: 키 순서 유지, 들여쓰기 제거, null 포함하여 JSON 직력화 하기위함.**/
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
 
     @Autowired
     private WebSocketController webSocketController;
+
+    @Autowired
+    private UserListService userListService;
 
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/
     @PostMapping("/zoom")
@@ -51,6 +55,7 @@ public class WebhookController {
                     log.info("[test]user.presence_status_updated");
                     Map<String,Object> object = (Map<String,Object>)((LinkedHashMap<String, Object>)json.get("payload")).get("object");
                     printJson(object);
+                    updateStatus(object);
                 default:
                     log.info("[test]event : {}", json);
                     return ResponseEntity.ok().build();
@@ -84,6 +89,34 @@ public class WebhookController {
         String data = objectMapper.writeValueAsString(object);
         log.info("[test]printJson : {}", data);
         webSocketController.enqueueEvent(object);
+    }
+
+    /** db update **/
+    public boolean updateStatus(Map<String, Object>  event){
+        String email = "";
+        try {
+            email = (String) event.get("email");
+            String stats = (String) event.get("presence_status");
+            UserList result = userListService.saveStats(email, stats);
+            log.info("[test]updateStatus success : {} {}", result.getId(), result.getStatus());
+            return true;
+
+        }catch (NullPointerException e){
+            log.info("[test]updateStatus fail NullPointerException: {}", e.getMessage());
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("event", "error");
+            error.put("message", String.format("findByEmail %s is NullPointerException", email));
+            error.put("detail", e.getMessage());
+            webSocketController.enqueueException(error);
+        }catch (Exception e){
+            log.info("[test]updateStatus fail : {}", e.getMessage());
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("event", "error");
+            error.put("message", String.format("maybe event data is not exist, check the event data : {}", event));
+            error.put("detail", e.getMessage());
+            webSocketController.enqueueException(error);
+        }
+        return false;
     }
 
 }

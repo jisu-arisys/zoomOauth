@@ -23,4 +23,15 @@ public class UserListService {
     public List<UserList> saveAll(List<UserList> userList){
         return repository.saveAll(userList);
     }
+
+    /** 존재하지 않는 이메일이면 결과가 null일 수도 있음 -> NullPointerException (NPE) 발생 **/
+    public UserList findByEmail(String email) {
+        return (UserList) repository.findByEmail(email).orElse(null);
+    }
+
+    public UserList saveStats(String email, String stats) {
+        UserList userStats = findByEmail(email);
+        userStats.setStatus(stats);
+        return repository.save(userStats);
+    }
 }

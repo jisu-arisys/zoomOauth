@@ -71,11 +71,65 @@
             font-weight: bold;
         }
 
+        .errorBox{
+            background: rgba(207, 0, 0, 0.4);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 500px;
+            display: none;
+            padding: 10px;
+        }
+
+        /* X 버튼과 메시지를 한 줄에 정렬 */
+        .errorHeader {
+            display: flex;
+            align-items: flex-start;     /* 텍스트 상단 기준 정렬 */
+            justify-content: space-between;
+            gap: 10px;                   /* 텍스트와 버튼 간 여백 */
+            white-space: pre-line;       /* \n 줄바꿈 유지 */
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        /* 메시지 부분 */
+        #errorBox #message {
+            flex: 1;                     /* 남은 영역을 꽉 채움 */
+            line-height: 1.4;
+            word-break: break-word;      /* 긴 단어 줄바꿈 */
+            margin: 0px;
+        }
+
+        /* 닫기 버튼 스타일 */
+        .closeBtn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 5px;
+        }
+        .closeBtn:hover {
+            color: #ffdddd;
+        }
+
+        .show{
+            display: block;
+            transition: 0.5s;
+        }
+
     </style>
 </head>
 <body>
 <header class="sticky">
     <h1>Zoom users 상태카드</h1>
+    <div id="errorBox" class="errorBox">
+        <div class="errorHeader">
+            <p id="message">Error</p>
+            <button class="closeBtn" onclick="closeErrorBox()">X</button>
+        </div>
+    </div>
     <div>
         <form id="zoomApi">
             <label for="userId">User ID:</label>
@@ -150,6 +204,18 @@
     const $userId = document.getElementById('userId');
     const $board = document.getElementById('board');
     const $cardItem = document.getElementById("cardItem");
+    const $errorBox = document.getElementById("errorBox");
+    const $message = document.getElementById("message");
+
+    function closeErrorBox(){
+        $message.innerHTML = '';
+        $errorBox.class.remove('show');
+    }
+
+    function showErrorBox(message){
+        $message.innerHTML = message
+        $errorBox.classList.add('show');
+    }
 
     function initCard(data) {
         for (const datum of data) {
@@ -214,6 +280,18 @@
                 const data = JSON.parse(message.body);
                 console.log('Received:', data);
                 updateStatus(data);
+            });
+
+            // 오류 이벤트 구독
+            stompClient.subscribe('/error/user-status', (message) => {
+                const data = JSON.parse(message.body);
+                console.log('Received:', data);
+                const formattedHTML = Object.entries(data)
+                    .map(([key, value]) => {
+                        return `<div><span class="key">${key}</span>: <span class="value">${value}</span></div>`;
+                    })
+                    .join("");
+                showErrorBox(formattedHTML);
             });
         });
     }

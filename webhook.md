@@ -7,13 +7,14 @@ zoom 에서 보내주는 실시간 이벤트를 받기 위함
 
 https://marketplace.zoom.us/
 url 은 CA 인증받은 https://[DOMAIN] 형식이어야함.
+https://doris-aquicultural-adequately.ngrok-free.dev/webhook/zoom
 
-ngrok 을 사용해 CA인증된 도메인을 내 로컬포트 localhost:9090에 포워딩하여 테스트함.
+ngrok 을 사용해 CA인증된 도메인을 내 로컬포트 localhost:8080에 포워딩하여 테스트함.
 https://dashboard.ngrok.com/get-started/setup/macos
 
 ```
 ngrok config add-authtoken 33OjsKe0sTvLsRz5IzDyAsf18P7_7QzBFR1zjK658wFJSt5Dw
-ngrok http 80
+ngrok http 8080
 ```
 
 ### webhook 엔트포인트 검증 과정 <<endpoint.url_validation>>
@@ -67,9 +68,25 @@ event_ts=1759206155113}
 
 1. api 호출 후 userlist 테이블에 저장.
 2. 웹에서 요청시 DB 조회, 데이터 없으면 api 호출.
+3. update 설정으로 서버 재시작시에도 기존 데이터 유지.
+4. 실시간 상태 변경 event 발생시 DB 업데이트
 
-문제 : 
-상태값 변경시 DB 에는 반영되지 않음.
--> 실시간 상태 변경 event 발생시 DB 업데이트 하는 배치서비스 필요.
 userlist 1개라도 조회되면 api 호출안됨.
 -> 사용자 정보 변경 event 발생시, or 주기적으로 api 호출해 DB 업데이트 하는 배치서비스 필요.
+
+### 에러 화면에 띄우기
+
+관리를 위해 별도의 예외큐목록을 생성하여, 백엔드에서 발생하는 오류들을 사용자 화면에 출력함.
+파싱을 거쳐 아래와 같이 출력됨.
+
+```
+event: error
+message: findByEmail jisu_um@arisys.co.kr is NullPointerException
+detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because "userStats" is null
+```
+
+### 이슈
+1. 완료일자 2025.10.13
+    개인계정에서 test_zoom@arisys.co.kr 로 계정을 변경한 후 webhook 검증 불가.
+    원인 : WebhookController.secretToken 클래스변수값에 개인계정의 토큰값이 하드코딩 되어 있었음. 제거 후 정상동작?
+
