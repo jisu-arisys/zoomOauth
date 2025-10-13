@@ -90,3 +90,10 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
     개인계정에서 test_zoom@arisys.co.kr 로 계정을 변경한 후 webhook 검증 불가.
     원인 : WebhookController.secretToken 클래스변수값에 개인계정의 토큰값이 하드코딩 되어 있었음. 제거 후 정상동작?
 
+### 사용자 추가
+
+1. zoom.us/account/user 에서 사용자 추가
+2. test_user_add@arisys.co.kr 생성 (줌폰 라이센스 미할당)
+3. 웹훅 수신됨
+4. [test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, first_name=, last_name=, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760337064042}
+
