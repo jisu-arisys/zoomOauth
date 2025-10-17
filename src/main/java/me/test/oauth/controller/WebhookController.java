@@ -1,19 +1,24 @@
 package me.test.oauth.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.common.SHA256Cipher;
 import me.test.oauth.entity.UserList;
+import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.service.UserListService;
+import me.test.oauth.service.WebhookEventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** zoom 이 보낸 webhook 이벤트를 받기위한 컨트롤러 **/
@@ -35,6 +40,12 @@ public class WebhookController {
     @Autowired
     private UserListService userListService;
 
+    @Autowired
+    private WebhookEventService webhookEventService;
+
+    @Autowired
+    private APIController apiController;
+
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/
     @PostMapping("/zoom")
     public ResponseEntity<String> zoomReceive(@RequestHeader("x-zm-signature") String signature, @RequestHeader("x-zm-request-timestamp") String timestamp, @RequestBody LinkedHashMap<String, Object> json) throws Exception {
@@ -42,28 +53,52 @@ public class WebhookController {
 
         //이벤트 별 응답 전송.
         if(isZoomWebhook) {
-            String event = (String)json.get("event");
-            log.info("[test]zoomReceive {}", json);
 
+            String event = (String)json.get("event");
+            LinkedHashMap<String, Object> payload = (LinkedHashMap<String, Object>)json.get("payload");
+            log.info("[test]zoomReceive {} : {}", event, json);
+
+            //webhook 검증
             switch (event) {
                 case "endpoint.url_validation":
-                    String plainToken = (String)((LinkedHashMap<String, Object>)json.get("payload")).get("plainToken");
+                    String plainToken = (String) payload.get("plainToken");
                     return ResponseEntity.ok(urlValidationResponseJSON(plainToken));
-                case "meeting.end":
-                case "meeting.participant.join":
-                case "user.presence_status_updated":
-                    log.info("[test]user.presence_status_updated");
-                    Map<String,Object> object = (Map<String,Object>)((LinkedHashMap<String, Object>)json.get("payload")).get("object");
-                    printJson(object);
-                    updateStatus(object);
-                default:
-                    log.info("[test]event : {}", json);
-                    return ResponseEntity.ok().build();
+
+                case "test.fail":
+                    return ResponseEntity.badRequest().build();
+
+                default: break;
             }
+
+            //webhook -> DB
+            WebhookEvent saved = saveWebhook(event, payload, json);
+
+            //webhook -> API 호출 or DB 업데이트
+            switch (event) {
+                case "user.created":
+                    String email = saved.getObject().getEmail();
+                    boolean reloaded = reloadUser(email);
+                    break;
+                case "user.presence_status_updated":
+                    updateStatus(payload);
+                    break;
+                case "meeting.participant.join":
+                    break;
+                default:
+                    log.info("[test] default event : {}", json);
+                    break;
+            }
+
+            //webhook -> 사용자
+            sendJsonToWebSocket(payload, event);
+
+            return ResponseEntity.ok().build();
         }
 
         return ResponseEntity.badRequest().build();
     }
+
+    //////////////////////////// webhook 검증
 
     /** zoom 이 보낸게 맞는지 서명 검증 **/
     public boolean verifyWithZoomHeader(String signature, String timestamp, LinkedHashMap<String, Object> json) throws Exception {
@@ -84,15 +119,38 @@ public class WebhookController {
         return responseJson;
     }
 
+    //////////////////////////// webhook -> 사용자
+
     /** zoom 에서 받은 이벤트 출력**/
-    public void printJson(Map<String,Object> object) throws JsonProcessingException {
-        String data = objectMapper.writeValueAsString(object);
-        log.info("[test]printJson : {}", data);
+    public void sendJsonToWebSocket(LinkedHashMap<String, Object> payload, String queueType) throws JsonProcessingException {
+        Map<String,Object> object = (Map<String,Object>)payload.get("object");
+        object.put("queueType", queueType);
         webSocketController.enqueueEvent(object);
+
+        log.debug("[debug]sendJsonToWebSocket : {}", objectMapper.writeValueAsString(object));
+    }
+
+    //////////////////////////// webhook -> DB
+
+    /** 검증된 webhook 이벤트를 받으면, DB에 담아 로그를 남김**/
+    public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) throws JsonProcessingException {
+        log.info("[test]saveWebhook : {}\n{}", event, payloadMap);
+//        Payload payload = objectMapper.convertValue(payloadMap, Payload.class);
+//        WebhookEvent webhookEvent = WebhookEvent.builder()
+//                .event(event)
+//                .payload(payload)
+//                .build();
+        json.putAll(payloadMap);
+        json.remove("payload");
+        WebhookEvent webhookEvent = objectMapper.convertValue(json, WebhookEvent.class);
+
+        WebhookEvent webhook = webhookEventService.saveWebhook(webhookEvent);
+        return webhook;
     }
 
     /** db update **/
-    public boolean updateStatus(Map<String, Object>  event){
+    public boolean updateStatus(Map<String, Object>  payload){
+        Map<String,Object> event = (Map<String,Object>)payload.get("object");
         String email = "";
         try {
             email = (String) event.get("email");
@@ -117,6 +175,18 @@ public class WebhookController {
             webSocketController.enqueueException(error);
         }
         return false;
+    }
+
+    /** 사용자 변경이 발생한 경우, 특정 사용자 목록을 다시 불러옴 **/
+    public boolean reloadUser(String email) throws JsonProcessingException {
+        UserList user = userListService.findByEmail(email);
+
+        //DB 내 데이터 없으면 API 호출하고 해당 데이터 반환.
+        if(user == null){
+            user = apiController.getUser(email);
+        }
+
+        return userListService.save(user) != null;
     }
 
 }

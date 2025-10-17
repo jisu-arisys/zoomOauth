@@ -130,6 +130,11 @@
             <button class="closeBtn" onclick="closeErrorBox()">X</button>
         </div>
     </div>
+    <div id="logBox" class="errorBox" style="background-color: antiquewhite; display: block">
+        <div class="errorHeader">
+            <p id="log">Log</p>
+        </div>
+    </div>
     <div>
         <form id="zoomApi">
             <label for="userId">User ID:</label>
@@ -196,6 +201,7 @@
                 },
                 error: function (data, status, err) {
                     console.log("error : ", data, status, err)
+                    checkNewEmail(data.message);
                 }
             });
         }
@@ -206,6 +212,7 @@
     const $cardItem = document.getElementById("cardItem");
     const $errorBox = document.getElementById("errorBox");
     const $message = document.getElementById("message");
+    const $log = document.getElementById("log");
 
     function closeErrorBox(){
         $message.innerHTML = '';
@@ -246,9 +253,22 @@
         }
     }
 
+    function writeLog(data) {
+        if ($log) {
+            const formattedHTML = Object.entries(data)
+                .map(([key, value]) => {
+                    return `<div><span class="key">${key}</span>: <span class="value">${value}</span></div>`;
+                })
+                .join("");
+            $log.innerHTML = formattedHTML;
+        } else {
+            console.warn("로그박스를 찾을 수 없습니다:", data);
+        }
+    }
+
     let stompClient = null;
 
-    function getList() {
+    function getList(force = false) {
         // 초기 사용자 데이터는 REST API로 가져오기
         $.ajax({
             url: '/api/userlist',
@@ -266,6 +286,37 @@
         });
     }
 
+    function getUser(userId, force = true) {
+        const url = force ? '/api/user/reload/'+userId+'?force=true' : '/api/userlist';
+        // 초기 사용자 데이터는 REST API로 가져오기
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json', // 서버에서 반환하는 UserList를 JSON으로 처리
+            success: function (data, status, xhr) {
+                console.log("응답 성공:", data);
+                if (data != null) {
+                    initCard([data]);
+                }
+            },
+            error: function (data, status, err) {
+                console.log("error : ", data, status, err)
+            }
+        });
+    }
+
+    function checkNewEmail(message){
+        if(message.startsWith("findByEmail")){
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            const emails = message.match(emailRegex);
+            if (emails && emails.length > 0 && confirm("사용자 "+emails+"의 정보가 없습니다. 새로 불러오시겠습니까?")){
+                getUser(emails);
+            }else {
+                console.warn("findByEmail 오류가 발생했지만 email 이 확인되지 않습니다.");
+            }
+        }
+    }
+
     function connect() {
         const socket = new SockJS('/ws');  // 서버의 STOMP 엔드포인트
         stompClient = Stomp.over(socket);
@@ -279,7 +330,18 @@
             stompClient.subscribe('/topic/user-status', (message) => {
                 const data = JSON.parse(message.body);
                 console.log('Received:', data);
+                writeLog(data);
                 updateStatus(data);
+            });
+
+            // 유저 정보변경 이벤트 구독 : 카드 새로받기
+            stompClient.subscribe('/topic/user-manage', (message) => {
+                const data = JSON.parse(message.body);
+                console.log('Received:', data);
+                writeLog(data);
+                if(confirm("사용자 "+ data.email +"가 추가되었습니다.")){
+                    initCard([data]);
+                }
             });
 
             // 오류 이벤트 구독
@@ -292,6 +354,14 @@
                     })
                     .join("");
                 showErrorBox(formattedHTML);
+                checkNewEmail(data.message);
+            });
+
+            // 미정의 이벤트 구독 :
+            stompClient.subscribe('/topic/default', (message) => {
+                const data = JSON.parse(message.body);
+                console.log('Received:', data);
+                writeLog(data);
             });
         });
     }

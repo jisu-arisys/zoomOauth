@@ -86,14 +86,54 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
 ```
 
 ### 이슈
+
 1. 완료일자 2025.10.13
     개인계정에서 test_zoom@arisys.co.kr 로 계정을 변경한 후 webhook 검증 불가.
     원인 : WebhookController.secretToken 클래스변수값에 개인계정의 토큰값이 하드코딩 되어 있었음. 제거 후 정상동작?
+2. 식별자 email 2025.10.13
+   사용자 정보를 구별하기 위한 userlist 테이블에서는 식별자로 id 를 사용중이나, 
+   대소문자 혼동으로 인한 이슈가 있어 JPA 호출시에는 email 로 식별하고 있음.
+   API 호출시 : userlist.id 값이 대소문자 혼용된 데이터가 조회됨.
+   Webhook 이벤트 수신시 : presence_status_updated  소문자로만 이루어진 데이터가 조회됨.
+
+### 존재하지 않는 사용자(2025.10.17)
+
+1. 사용자 상태변경 webhook 이벤트를 받음.
+2. 상태값을 DB에 업데이트하는 도중 일치하는 사용자 정보가 없어 NullPointerException
+3. 사용자에게 error 전달. 사용자 추가조회 여부를 확인.
+4. 사용자 요청시 api 호출하여 사용자정보를 DB에 저장.
+5. 사용자에게 불러온 정보를 제공, 화면에 출력함.
 
 ### 사용자 추가
 
 1. zoom.us/account/user 에서 사용자 추가
 2. test_user_add@arisys.co.kr 생성 (줌폰 라이센스 미할당)
 3. 웹훅 수신됨
-4. [test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, first_name=, last_name=, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760337064042}
+[test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, first_name=, last_name=, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760337064042}
+[test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760342138985}
+4. zoom api 를 호출해 DB 정보를 업데이트 한다. /api/user/{email} or /api/user/ -> 조회 후 업데이트시 기존 실시간상태가 변경됨. -> 별도 테이블로 구성을 바꿀지 고민됨. 단일이라면 조회 - 수정 - 업데이트 하면 됨. 실시간 데이터 누락이 간혹 있을 수 있음.
+
+
+### 로그인/로그아웃
+
+zoomReceive user.signed_out : {event=user.signed_out, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=WfW3epgHTnGfUWLgGkYiGg, client_type=browser, date_time=2025-10-17T06:05:48Z, version=-, login_type=100, email=ysshim@arisys.co.kr}}, event_ts=1760681148192}
+zoomReceive user.signed_in : {event=user.signed_in, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=t2bS3bJKRamtTrbWCKMVtA, client_type=browser, date_time=2025-10-17T06:06:37Z, version=-, login_type=100, email=jisu_um@arisys.co.kr}}, event_ts=1760681197150}
+
+### webhookEvent 엔티티 생성(2025.10.17)
+반복되는 구조의 웹훅을 파싱하기 간편하게 하면서, 실시간으로 DB 에 이벤트로그를 저장하기 위한 중첩된 엔티티 생성.
+
+WebhookEvent.java -> ~~Payload.java~~ -> Object.java
+
+zoomReceive user.presence_status_updated : {event=user.presence_status_updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={date_time=2025-10-17T06:41:35Z, email=jisu_um@arisys.co.kr, id=t2bs3bjkramttrbwckmvta, presence_status=Available}}, event_ts=1760683295459}
+
+### DB에서 대소문자 무시 검색
+추대소문자를 구분하지 않는 DB(H2) 레벨 특성특성으로 인해,  WebhookObject 테이블의 기본키 중복방지를 위해 대체 Long object_id 를 기본키로 사용함.
+반대로 JPA는 대소문자를 구분하므로 기본키로 테이블 조회시 아래 함수 사용.
+
+H2 DB 또는 MySQL에서 컬럼을 VARCHAR_IGNORECASE 또는 COLLATE로 생성
+조회 시 lower(id) 또는 UPPER(id)를 사용하여 비교
+@Query("SELECT w FROM WebhookObject w WHERE LOWER(w.id) = LOWER(:id)")
+Optional<WebhookObject> findByIdIgnoreCase(@Param("id") String id);
+장점: 원본 대소문자 유지 가능
+단점: DB마다 지원 방식 차이가 있고, 인덱스 효율 저하 가능
 

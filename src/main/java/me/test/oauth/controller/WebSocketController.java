@@ -34,7 +34,18 @@ public class WebSocketController {
     public void processEvents() {
         Map<String, Object> event;
         while ((event = queue.poll()) != null) {
-            publishCtiEvent(event);
+            String type = event.get("queueType").toString();
+
+            switch (type) {
+                case "user.created":
+                    publishCtiEvent(event, "/topic/user-manage");
+                    break;
+                case "user.presence_status_updated":
+                    publishCtiEvent(event, "/topic/user-status");
+                    break;
+                default:
+                    publishCtiEvent(event, "/topic/default");
+            }
             break;
         }
     }
@@ -63,6 +74,12 @@ public class WebSocketController {
     }
 
     /** 단순 브로드캐스트 예시. **/
+    public void publishCtiEvent(Map<String, Object> event, String topic) {
+        messagingTemplate.convertAndSend(topic, event);
+    }
+
+    /** 단순 브로드캐스트 예시. **/
+    @Deprecated
     public void publishCtiEvent(Map<String, Object> event) {
         messagingTemplate.convertAndSend("/topic/user-status", event);
     }

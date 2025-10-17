@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -33,5 +34,13 @@ public class UserListService {
         UserList userStats = findByEmail(email);
         userStats.setStatus(stats);
         return repository.save(userStats);
+    }
+
+    public UserList save(UserList userDto) {
+        return repository.save(userDto);
+    }
+
+    public Optional<UserList> findById(String userId) {
+        return repository.findById(userId);
     }
 }
