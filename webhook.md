@@ -137,3 +137,27 @@ Optional<WebhookObject> findByIdIgnoreCase(@Param("id") String id);
 장점: 원본 대소문자 유지 가능
 단점: DB마다 지원 방식 차이가 있고, 인덱스 효율 저하 가능
 
+## zoom Controller, Service 클래스구분(2025.10.22)
+webhook, api, db, websocket, restapi  등 교차되는 요청들이 많아 컨트롤러 별 역할 및 요청목록을 명확하게 분리할 필요가 있음.
+### 3계층 구조(Controller → Service → Repository)
+Controller: HTTP 요청 처리 담당
+Service: 비즈니스 로직 담당
+Repository: (있다면) 데이터 액세스 담당
+
+### 컨트롤러 3개, 서비스는 5개
+* RestController - 브라우저 사용자의 요청시, ResponseEntity 제공 
+* ViewController - 브라우저 사용자의 요청시, 정적 html 화면 및 model 담은 페이지명 반환.
+* WebhookController - Zoom 사이트에서 사용자변경사항을 webhook 으로 제공함. webhook 파싱해서 event 종류별로 다른 서비스를 호출함. 
+
+* WebhookEventService - webhook 로그기록 테이블을 crud 
+* UserListService - 사용자 테이블을 crud
+* ZoomApiService - Zoom 사이트에 API 요청하고, 받은 데이터 String Json 형태로 반환.( 외부 연동 전용 )
+* DataService - 테이블 데이터와 API 데이터의 통합조회하여 DTO 로 제공함. ( db 없으면 api 호출 후 저장하고 반환함) 
+* WebSocketService - 큐를 관리하며, 사용자에게 websocekt 전달
+
+* UserListRepository - zoom Api 에서 받은 사용자정보 저장
+* WebhookEventRepository - zoom Webhook 에서 받은 이벤트정보 저장
+* WebhookObjectRepository - zoom Webhook 에서 받은 이벤트 내부의 다양한 상세 데이터 저장
+
+  WebhookController → WebhookEventService 호출 부분은
+  I/O 부하가 크다면 @Async 또는 메시지큐(kafka, redis pub/sub)로 분리도 고려 가능.

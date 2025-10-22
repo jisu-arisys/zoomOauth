@@ -1,22 +1,23 @@
-package me.test.oauth.controller;
+package me.test.oauth.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
-@Controller
-public class WebSocketController {
+@Service
+public class WebSocketService {
     private final SimpMessagingTemplate messagingTemplate;
     private final BlockingQueue<Map<String, Object>> queue = new LinkedBlockingQueue<>();
     private final BlockingQueue<Map<String, Object>> exception = new LinkedBlockingQueue<>();
 
-    public WebSocketController(SimpMessagingTemplate messagingTemplate){
+    public WebSocketService(SimpMessagingTemplate messagingTemplate){
         this.messagingTemplate = messagingTemplate;
 
         // 백그라운드 스레드에서 이벤트 처리
@@ -88,10 +89,5 @@ public class WebSocketController {
     public void publishException(Map<String, Object> event) {
         messagingTemplate.convertAndSend("/error/user-status", event);
     }
-
-    /** 개인 전송 /queue/user-{id} 사용**/
-//    public void queueCtiEvent(@RequestParam(required = true) String userId, Map<String, Object> event) {
-//        messagingTemplate.convertAndSend("/queue/user-" + userId, event);
-//    }
 
 }

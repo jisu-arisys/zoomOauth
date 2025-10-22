@@ -1,4 +1,4 @@
-package me.test.oauth.controller;
+package me.test.oauth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,11 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.*;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,13 +24,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-/** zoom.html 화면 및 해당 페이지의 요청(zoom api)을 처리하는 컨트롤러 **/
-/** controller 어노테이션에 의해 스프링 빈으로 등록 되어야, 컴포넌트 스캔의 대상이 되어 value 어노테이션이 동작한다.**/
-@Controller()
-@RequestMapping("/zoom")
+/** ZoomApi 호출하는 하나의 인스턴스만 생성해서 스프링이 관리함, 여러 컨트롤러에서 참조로 공통 사용함. Zoom 사이트에 API 요청하고, 받은 데이터 String Json 형태로 반환. **/
+@Service
 @PropertySource("classpath:zoom.properties")
 @Slf4j
-public class ZoomController {
+public class ZoomApiService {
 
     /** HTTP 통신을 위한 도구로 REST full API 웹 서비스와의 상호작용을 쉽게 외부 도메인에서 데이터를 가져오거나 전송할 때 사용되는 스프링 프레임워크의 클래스**/
     private final RestTemplate restTemplate = new RestTemplate();
@@ -41,8 +39,7 @@ public class ZoomController {
     @Value("${zoom.api.base.url}")
     String zoomApiBaseUrl;
 
-
-//    사용자 권한받기
+    //    사용자 권한받기
     @Value("${ZOOM_CLIENT_ID}")
     private String zoomClientId;
     @Value("${ZOOM_CLIENT_SECRET}")
@@ -54,7 +51,7 @@ public class ZoomController {
     private String USER_ACCESS_TOKEN;
     private String USER_REFRESH_TOKEN;
 
-//    서버 권한받기
+    //    서버 권한받기
     @Value("${ZOOM_SERVER_ACCOUNT_ID}")
     private String zoomAccountId;
     @Value("${ZOOM_SERVER_CLIENT_ID}")
@@ -63,11 +60,13 @@ public class ZoomController {
     private String zoomServerClientSecret;
     private String ACCOUNT_CREDENTIALS_ACCESS_TOKEN;
 
-//    사용자 권한과 서버 권한의 공동사용.
+    //    사용자 권한과 서버 권한의 공동사용.
     private HttpHeaders tokenHeaders = new HttpHeaders();
 
+    //    post 요청용
     private HttpHeaders postHeaders = new HttpHeaders();
 
+    //    생성자 실행시 서버 권한 생성
     @PostConstruct
     public void init() {
         try {
@@ -110,7 +109,7 @@ public class ZoomController {
         postHeaders.setBearerAuth(token);
     }
 
-    private void setModelObject(Model model) {
+    public void setModelObject(Model model) {
         model.addAttribute("clientToken", CLIENT_CREDENTIALS_ACCESS_TOKEN !=null? CLIENT_CREDENTIALS_ACCESS_TOKEN : "");
         model.addAttribute("accountToken", ACCOUNT_CREDENTIALS_ACCESS_TOKEN !=null? ACCOUNT_CREDENTIALS_ACCESS_TOKEN : "");
         model.addAttribute("authorizationCode",  AUTHORIZATION_CODE !=null? AUTHORIZATION_CODE : "");
@@ -119,28 +118,15 @@ public class ZoomController {
         model.addAttribute("isSuccess", CLIENT_CREDENTIALS_ACCESS_TOKEN!=null || ACCOUNT_CREDENTIALS_ACCESS_TOKEN!=null || USER_ACCESS_TOKEN!=null);
     }
 
-    /** 기본화면 **/
-    @GetMapping()
-    public String index(Model model) {
-        System.out.println("basic /zoom");
-        setModelObject(model);
-        return "zoom";
-    }
-
     /** 모든 정보 초기화 **/
-    @GetMapping("/resetToken")
-    public String resetToken(Model model) {
-        System.out.println("/resetToken");
+    public void resetToken(Model model) {
         CLIENT_CREDENTIALS_ACCESS_TOKEN = null;
         ACCOUNT_CREDENTIALS_ACCESS_TOKEN = null;
         AUTHORIZATION_CODE = null;
         USER_ACCESS_TOKEN = null;
         USER_REFRESH_TOKEN = null;
         setModelObject(model);
-        return "zoom";
     }
-
-//  사용자권한 토큰 요청
 
     /** 애플리케이션 자체가 API 에 액세스해야 할 때
      * clientCredentials > authorize : 리다이렉트 > get/auth > token
@@ -151,7 +137,6 @@ public class ZoomController {
      * <br>redirect_uri 권한이 부여된 경우 Zoom 은 코드 쿼리 매개변수에 권한 부여 코드를 사용하여 사용자를 리디렉션합니다 .
      * <br>https://{{ZOOM_REDIRECT_URI}}?code=~
      **/
-    @GetMapping("/client_credentials/token")
     public void clientCredentials(Model model, HttpServletResponse redirectResponse) {
         UriComponentsBuilder clientBuilder = UriComponentsBuilder.fromHttpUrl(zoomOauthEndpoint + "/token")
                 .queryParam("grant_type", "client_credentials");
@@ -178,11 +163,6 @@ public class ZoomController {
                     .queryParam("response_type", "code")
                     .queryParam("redirect_uri", ZOOM_REDIRECT_URI)
                     .queryParam("client_id", zoomClientId);
-              /*    선택사항.
-                .queryParam("state", "")
-                .queryParam("code_challenge", "")
-                .queryParam("code_challenge_method", "plain"); */
-
             String redirectUri = authBuilder.build().toUriString();
 
             try{
@@ -224,7 +204,6 @@ public class ZoomController {
      *<br>"scope": "user:read"
      *<br>}
      * **/
-    @RequestMapping(value="/get/auth" , method = {RequestMethod.GET, RequestMethod.POST})
     public String getZoomApiAuth(HttpServletRequest req, @RequestParam String code, Model model) {
         System.out.println("redirect_uri: "+ "zoom/get/auth");
 
@@ -239,10 +218,6 @@ public class ZoomController {
             requestBody.add("grant_type", "authorization_code");
             requestBody.add("code", AUTHORIZATION_CODE);
             requestBody.add("redirect_uri", ZOOM_REDIRECT_URI);
-            /* 선택사항
-            requestBody.add("code_verifier", URLEncoder.encode(AUTHORIZATION_CODE)); //400 Bad Request, invalid_request
-            requestBody.add("device_code", "");*/
-
             HttpHeaders clientHeaders = getClientHeaders();
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, clientHeaders);
 
@@ -287,15 +262,12 @@ public class ZoomController {
         return "zoom";
     }
 
-//  서버권한 토큰 요청
-
     /** 애플리케이션 소유자의 액세스 토큰입니다. 서버에서 API 에 액세스해야 할 때 (사용자 인증이 필요하지 않은 경우)
      * 새로 고침 토큰이 없습니다. 한 시간 후에 만료됩니다.
      * 계정 관리자는 이러한 앱 유형을 빌드하는 개발자가 사용할 수 있는 범위를 승인합니다.
      * 성공적인 응답
      * {"access_token":"~","token_type":"bearer","expires_in":3600,"scope":"marketplace:delete:event_subscription marketplace:read:list_event_subscriptions marketplace:update:event_subscription marketplace:write:event_subscription marketplace:write:websocket_connection","api_url":"<a href="https://api.zoom.us">...</a>"}
      * **/
-    @GetMapping("/account_credentials/token")
     public String accountCredentials(Model model) {
         String account_credentialsUrl =zoomOauthEndpoint + "/token";
 
@@ -341,51 +313,13 @@ public class ZoomController {
         return "zoom";
     }
 
-//    토큰을 가지고 api GET 요청.
-
+    /** 토근을 가지고 get 요청 API 호출 JSON 반환 **/
     /** 전역변수 tokenRequestEntity 를 사용하여 GET 요청을 보냅니다.
      *
      * <br> 요청헤더에 엑세스 토큰이 필요합니다.
      * <br> -H "Authorization: Bearer USER_ACCESS_TOKEN"
      * <br> -H "Content-Type: application/x-www-form-urlencoded"
      * **/
-    public void getApi(String getUrl, String attributeName, Model model) {
-        // 요청 가능여부 검증
-        if(tokenHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
-            return;
-        }
-
-        try {
-            HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(tokenHeaders);
-            // REST API 호출
-            ResponseEntity<String> response = restTemplate.exchange(
-                    zoomApiBaseUrl + getUrl,
-                    HttpMethod.GET,
-                    tokenRequestEntity,
-                    String.class
-            );
-
-            // 응답 바디 JSON 형로 출력 : 4개의 공백으로 들여쓰기
-            ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-            Object jsonObject = objectMapper.readValue(response.getBody(), Object.class);
-            String prettyJsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
-
-            System.out.println(prettyJsonString);
-
-            // 모델에 데이터 추가
-            model.addAttribute(attributeName, prettyJsonString);
-
-        } catch (HttpClientErrorException e) {
-            // 예외 처리
-            model.addAttribute("messages", e.toString());
-        } catch (JsonProcessingException e) {
-            model.addAttribute("messages", e.toString());
-        }
-        setModelObject(model);
-    }
-
-    /** zoop api 응답값만 JSON String 으로 반환하는 함수 **/
     public String getApi(String getUrl) {
         String profix = "fail";
         // 요청 가능여부 검증
@@ -417,7 +351,7 @@ public class ZoomController {
         }
     }
 
-    /** zoop api 응답값만 JSON String 으로 반환하는 함수 **/
+    /** 토근을 가지고 post 요청 API 호출 JSON 반환 **/
     public String postApi(String url, Map<String, Object> bodyMap) {
         log.info("[test]postApi : {}", bodyMap);
         String profix = "fail";
@@ -453,52 +387,4 @@ public class ZoomController {
     }
 
 
-    /** 지정한 사용자의 정보 혹은 모든 사용자의 정보를 조회합니다.
-     * <br><a href="https://developers.zoom.us/docs/api/users/#tag/users/GET/users/">...</a>{userId}
-     * <br>성공시 응답 get a user: {"id":"~","first_name":"지수","last_name":"엄","display_name":"엄지수","email":"asha.jisu@gmail.com","type":1,"role_name":"Owner","pmi":8603532991,"use_pmi":false,"personal_meeting_url":"<a href="https://us04web.zoom.us/j/8603532991?pwd=uWaoSSmdvXaOHs6xYst7S3664Xa4Eu.1">...</a>","timezone":"Asia/Seoul","verified":0,"dept":"","created_at":"2020-07-12T04:17:16Z","last_login_time":"2024-12-18T05:47:59Z","last_client_version":"5.12.9.10650(win)","pic_url":"<a href="https://us04web.zoom.us/p/v2/...">...</a>","cms_user_id":"","jid":"g9zvjgl3rcq1anovgch2mg@xmpp.zoom.us","group_ids":[],"im_group_ids":[],"account_id":"~","language":"ko-KO","phone_country":"","phone_number":"","status":"active","job_title":"","cost_center":"","location":"","login_types":[1],"role_id":"0","cluster":"us04","user_created_at":"2020-07-12T04:17:16Z"}
-     * <br>성공시 응답 List users : {"page_count":1,"page_number":1,"page_size":30,"total_records":1,"next_page_token":"","users":[{"id":"~","first_name":"지수","last_name":"엄","display_name":"엄지수","email":"asha.jisu@gmail.com","type":1,"pmi":8603532991,"timezone":"Asia/Seoul","verified":0,"dept":"","created_at":"2020-07-12T04:17:16Z","last_login_time":"2024-12-18T05:47:59Z","last_client_version":"5.12.9.10650(win)","pic_url":"<a href="https://us04web.zoom.us/p/v2/d0ba9e75f6f34051ceedc6ef868ddb29e10d8c34a0c16cfa232db3a0d04b91a1/d049bd1e-7fb5-46f7-ba29-5b058223a1dd-641">...</a>","language":"ko-KO","phone_number":"","status":"active","role_id":"0","user_created_at":"2020-07-12T04:17:16Z"}]}
-     * **/
-    @GetMapping("/users")
-    public String getUsers(@RequestParam String userId, Model model) {
-        String usersUrl = "/users/" + userId;
-        System.out.println(usersUrl);
-        getApi(usersUrl, "users", model);
-        return "zoom";
-    }
-
-    /**사용자의 모든 스케줄러를 나열합니다. **/
-    @GetMapping("/schedulers")
-    public String getScheduledMeetingIdZoomApi(@RequestParam String userId, Model model) {
-        String schedulesUrl = "/users/" + userId + "/schedulers";
-        System.out.println(schedulesUrl);
-        getApi(schedulesUrl, "schedulers", model);
-        return "zoom";
-    }
-
-    /**사용자의 모든 회의정보를 검색합니다. **/
-    @GetMapping("/meetings")
-    public String getMeetingIdZoomApi(@RequestParam String userId, Model model) {
-        String meetingUrl = "/users/" + userId + "/meetings";
-        System.out.println(meetingUrl);
-        getApi(meetingUrl, "meetings", model);
-        return "zoom";
-    }
-
-    /** 전체 콜 목록을 조회합니다. **/
-    @GetMapping("/phone/call_history")
-    public String getCallHistoriesZoomApi(Model model) {
-        String callsUrl = "/phone/call_history";
-        System.out.println(callsUrl);
-        getApi(callsUrl, "logs", model);
-        return "zoom";
-    }
-
-    /** 콜 하나에 대한 자세한 정보를 조회합니다. **/
-    @GetMapping("/phone/call_history_detail")
-    public String getCallDetailZoomApi(@RequestParam String callLogId, Model model) {
-        String callUrl = "/phone/call_history_detail/" + callLogId;
-        System.out.println(callUrl);
-        getApi(callUrl, "log", model);
-        return "zoom";
-    }
 }

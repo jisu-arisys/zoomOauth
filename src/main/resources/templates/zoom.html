@@ -26,37 +26,37 @@
                     <ul>
                         <li>
                             <p>
-                                <span th:if="${!clientToken.isBlank() && isSuccess}"> clientToken 인증 성공!
+                                <span th:if="${!#strings.isEmpty(clientToken) and isSuccess}"> clientToken 인증 성공!
                                         <br><strong th:text="${clientToken}"></strong>
                                 </span>
-                                        <span th:if="${clientToken.isBlank()}">clientToken 미인증
+                                <span th:if="${#strings.isEmpty(clientToken)}">clientToken 미인증
                                 </span>
                             </p>
                         </li>
                         <li>
                             <p>
-                                <span th:if="${!authorizationCode.isBlank() && isSuccess}"> autoCode 인증 성공!
+                                <span th:if="${!#strings.isEmpty(authorizationCode) and isSuccess}"> autoCode 인증 성공!
                                     <br><strong th:text="${authorizationCode}"></strong>
                                 </span>
-                                <span th:if="${authorizationCode.isBlank()}">autoCode 미인증
+                                <span th:if="${#strings.isEmpty(authorizationCode)}">autoCode 미인증
                                 </span>
                             </p>
                         </li>
                         <li>
                             <p>
-                                <span th:if="${!accessToken.isBlank() && isSuccess}"> accessToken 인증 성공!
+                                <span th:if="${!#strings.isEmpty(accessToken) and isSuccess}"> accessToken 인증 성공!
                                     <br><strong th:text="${accessToken}"></strong>
                                 </span>
-                                <span th:if="${accessToken.isBlank()}">accessToken 미인증
+                                <span th:if="${#strings.isEmpty(accessToken)}">accessToken 미인증
                                 </span>
                             </p>
                         </li>
                         <li>
                             <p>
-                                <span th:if="${!refreshToken.isBlank() && isSuccess}"> refreshToken 인증 성공!
+                                <span th:if="${!#strings.isEmpty(refreshToken) and isSuccess}"> refreshToken 인증 성공!
                                     <br><strong th:text="${refreshToken}"></strong>
                                 </span>
-                                <span th:if="${refreshToken.isBlank()}">refreshToken 미인증
+                                <span th:if="${#strings.isEmpty(refreshToken)}">refreshToken 미인증
                                 </span>
                             </p>
                         </li>
@@ -72,10 +72,10 @@
                     <ul>
                         <li>
                                 <p>
-                                    <span th:if="${!accountToken.isBlank() && isSuccess}"> accountToken 인증 성공!
+                                    <span th:if="${!#strings.isEmpty(accountToken) and isSuccess}"> accountToken 인증 성공!
                                             <br><strong th:text="${accountToken}"></strong>
                                     </span>
-                                    <span th:if="${accountToken.isBlank()}">accountToken 미인증
+                                    <span th:if="${#strings.isEmpty(accountToken)}">accountToken 미인증
                                     </span>
                                 </p>
                         </li>
@@ -104,31 +104,31 @@
                         <li>
                             <p>
                                 <span> 개인 조회는 userId 값 입력, 목록조회에는 userId 불필요 </span><br>
-                                <button type="button" onclick="submitForm('/zoom/users')" th:attr="disabled=${!isSuccess}">/zoom/users</button>
+                                <button type="button" onclick="submitForm('/zoom/users')" th:attr="disabled=${isSuccess == null or !isSuccess}">/zoom/users</button>
                             </p>
                         </li>
                         <li>
                             <p>
                                 <span> userId 값 필수</span><br>
-                                <button type="button" onclick="submitForm('/zoom/schedulers', 'userId')" th:attr="disabled=${!isSuccess}">/zoom/schedulers</button>
+                                <button type="button" onclick="submitForm('/zoom/schedulers', 'userId')" th:attr="disabled=${isSuccess == null or !isSuccess}">/zoom/schedulers</button>
                             </p>
                         </li>
                         <li>
                             <p>
                                 <span> userId 값 필수</span><br>
-                                <button type="button" onclick="submitForm('/zoom/meetings', 'userId')" th:attr="disabled=${!isSuccess}">/zoom/meetings</button>
+                                <button type="button" onclick="submitForm('/zoom/meetings', 'userId')" th:attr="disabled=${isSuccess == null or !isSuccess}">/zoom/meetings</button>
                             </p>
                         </li>
                         <li>
                             <p>
                                 <span> server_credentials 필수 </span><br>
-                                <button type="button" onclick="submitForm('/zoom/phone/call_history')" th:attr="disabled=${accountToken.isBlank()}">/zoom/phone/call_history</button>
+                                <button type="button" onclick="submitForm('/zoom/phone/call_history')" th:attr="disabled=${#strings.isEmpty(accountToken)}">/zoom/phone/call_history</button>
                             </p>
                         </li>
                         <li>
                             <p>
                                 <span> callId 값 필수 & server_credentials 필수 </span><br>
-                                <button type="button" onclick="submitForm('/zoom/phone/call_history_detail', 'callLogId')" th:attr="disabled=${accountToken.isBlank()}">/zoom/phone/call_history_detail</button>
+                                <button type="button" onclick="submitForm('/zoom/phone/call_history_detail', 'callLogId')" th:attr="disabled=${#strings.isEmpty(accountToken)}">/zoom/phone/call_history_detail</button>
                             </p>
                         </li>
                     </ul>
