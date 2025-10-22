@@ -331,7 +331,7 @@
                 const data = JSON.parse(message.body);
                 console.log('Received:', data);
                 writeLog(data);
-                updateStatus(data);
+                updateStatus(data.object);
             });
 
             // 유저 정보변경 이벤트 구독 : 카드 새로받기
