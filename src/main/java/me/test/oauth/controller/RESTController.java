@@ -1,13 +1,10 @@
 package me.test.oauth.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.test.oauth.common.JsonUtil;
 import me.test.oauth.entity.UserList;
 import me.test.oauth.service.DataService;
-import me.test.oauth.service.UserListService;
 import me.test.oauth.service.ZoomApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
@@ -27,26 +24,22 @@ public class RESTController {
     private final ZoomApiService zoomApiService;
 
     @Autowired
-    private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
-
-    @Autowired
-    private final UserListService userListService;
-
-    @Autowired
     private DataService dataService;
 
     /** 한 사용자 기준 1분에 한번만 상태변경 요청. **/
     @PostMapping("/users/{userId}/presence_status")
-    public ResponseEntity<String> setUserPresenceStatus(@PathVariable String userId, @RequestBody Map<String, Object> bodyMap) {
+    public ResponseEntity<String> setUserPresenceStatus(@PathVariable String userId, @RequestBody Map<String, Object> bodyMap) throws JsonProcessingException {
         log.info("[test]setUserPresenceStatus : {}", bodyMap);
-        Optional<UserList> user = userListService.findById(userId);
-        if (user.isEmpty()) {
+        //api 로 존재하는 ID 체크 및 DB 정보저장
+        UserList user = dataService.getUser(userId);
+        if (user == null) {
             Map<String, Object> error = new LinkedHashMap<>();
             error.put("event", "error");
             error.put("message", String.format("findById %s is NullPointerException", userId));
             return ResponseEntity.badRequest().body(error.toString());
         }
 
+        //상태변경
         String changeUrl = "/users/" + userId + "/presence_status";
         String json = zoomApiService.postApi(changeUrl, bodyMap);
         if (json.startsWith("fail")){
@@ -57,13 +50,9 @@ public class RESTController {
 
     /** 사용자 목록 조회 **/
     @GetMapping("/userlist")
-    public ResponseEntity<List<UserList>> getUserlistFromDB() throws JsonProcessingException {
-        List<UserList> list = userListService.findAll();
-
-        //DB 내 데이터 없으면 API 호출하고 해당 데이터 반환.
-        if(list.isEmpty()){
-            list = dataService.getUserList("");
-        }
+    public ResponseEntity<List<UserList>> getUserlist() throws JsonProcessingException {
+        //DB 조회 > 없으면 api 다중 호출 후 DB 저장
+        List<UserList> list = dataService.readUserListOrGetUserListAndSave();
         return ResponseEntity.ok(list);
     }
 
@@ -71,9 +60,13 @@ public class RESTController {
     @GetMapping("/user/reload/{userId}")
     public ResponseEntity<UserList> getUserReLoadFromAPI(@PathVariable String userId, @Param(value = "false") String force) throws JsonProcessingException {
         boolean isForce = Boolean.parseBoolean(force);
-        UserList user = userListService.findByEmail(userId);
-        if (isForce || user == null) {
+        UserList user;
+        if (isForce) {
+            //api 호출 후 DB 저장
             user = dataService.getUser(userId);
+        } else {
+            //DB 조회 > 없으면 api 호출 후 DB 저장
+            user = dataService.readUserOrGetUserAndSave(userId);
         }
         return ResponseEntity.ok(user);
     }

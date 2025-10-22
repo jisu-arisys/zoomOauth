@@ -1,6 +1,5 @@
 package me.test.oauth.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
@@ -8,9 +7,7 @@ import me.test.oauth.common.SHA256Cipher;
 import me.test.oauth.entity.UserList;
 import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.service.DataService;
-import me.test.oauth.service.UserListService;
 import me.test.oauth.service.WebSocketService;
-import me.test.oauth.service.WebhookEventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -70,7 +67,7 @@ public class WebhookController {
             switch (event) {
                 case "user.created":
                     String email = saved.getObject().getEmail();
-                    boolean reloaded = dataService.reloadUser(email);
+                    UserList reloaded = dataService.readUserOrGetUserAndSave(email);
                     break;
                 case "user.presence_status_updated":
                     dataService.updateStatus(payload);

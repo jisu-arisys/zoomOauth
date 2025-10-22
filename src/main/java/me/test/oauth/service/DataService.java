@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.entity.UserList;
 import me.test.oauth.entity.webhook.WebhookEvent;
+import me.test.oauth.repository.UserListRepository;
+import me.test.oauth.repository.WebhookEventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,20 +22,21 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-/**DB와 API 데이터의 통합조회하고(DB 정보 없으면 api 호출 후 DB 저장), DTO반환**/
+/**DB와 API 데이터의 통합조회하고(DB read > get api > DB save), DTO반환**/
 public class DataService {
 
     @Autowired
     private ZoomApiService zoomApiService;
     @Autowired
-    private final UserListService userListService;
+    private final UserListRepository userListRepository;
     @Autowired
-    private final WebhookEventService webhookEventService;
+    private final WebhookEventRepository webhookEventRepository;
     @Autowired
     private final WebSocketService webSocketService;
     @Autowired
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
 
+    //// api 우선조회
 
     /** api 조회 후 DB 저장하고 리스트 dto 반환 **/
     public List<UserList> getUserList(@RequestParam String userId) throws JsonProcessingException {
@@ -68,7 +71,7 @@ public class DataService {
 
         }while(userId.isEmpty() && next_page_token.length() > 0);
 
-        userListService.saveAll(allUsers);
+        userListRepository.saveAll(allUsers);
 
         return allUsers;
     }
@@ -85,28 +88,41 @@ public class DataService {
         }
 
         UserList userDto = objectMapper.readValue(json, new TypeReference<UserList>() {});
-        return userListService.save(userDto);
+        return userListRepository.save(userDto);
+    }
+
+
+    //// DB 우선조회
+    /** 전체 사용자 목록을 불러옴 **/
+    public List<UserList> readUserListOrGetUserListAndSave() throws JsonProcessingException {
+        List<UserList> user = userListRepository.findAll();
+        if (user.isEmpty()) {
+            user = getUserList("");
+        }
+        return user;
     }
 
     /** 사용자 변경이 발생한 경우, 특정 사용자 목록을 다시 불러옴 **/
-    public boolean reloadUser(String email) throws JsonProcessingException {
-        UserList user = userListService.findByEmail(email);
-
-        //DB 내 데이터 없으면 API 호출하고 해당 데이터 반환.
-        if(user == null){
-            user = getUser(email);
-        }
-
-        return userListService.save(user) != null;
+    public UserList readUserOrGetUserAndSave(String email) throws JsonProcessingException {
+        UserList user = (UserList) userListRepository.findByEmail(email).orElse(getUser(email));
+        return user;
     }
 
+    /** 사용자 정보 조회 **/
+    public UserList readUserIdOrGetUserAndSave(String userId) throws JsonProcessingException {
+        UserList user = (UserList) userListRepository.findById(userId).orElse(getUser(userId));
+        return user;
+    }
+
+
+    //// DB 저장
     /** 검증된 webhook 이벤트를 받으면, DB에 담아 로그를 남김**/
     public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) throws JsonProcessingException {
         log.info("[test]saveWebhook : {}\n{}", event, payloadMap);
         json.putAll(payloadMap);
         json.remove("payload");
         WebhookEvent webhookEvent = objectMapper.convertValue(json, WebhookEvent.class);
-        WebhookEvent webhook = webhookEventService.saveWebhook(webhookEvent);
+        WebhookEvent webhook = webhookEventRepository.save(webhookEvent);
         return webhook;
     }
 
@@ -117,7 +133,9 @@ public class DataService {
         try {
             email = (String) event.get("email");
             String stats = (String) event.get("presence_status");
-            UserList result = userListService.saveStats(email, stats);
+            UserList userStats = (UserList) userListRepository.findByEmail(email).orElse(getUser(email));
+            userStats.setStatus(stats);
+            UserList result = userListRepository.save(userStats);
             log.info("[test]updateStatus success : {} {}", result.getId(), result.getStatus());
             return true;
 

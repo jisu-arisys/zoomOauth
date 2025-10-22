@@ -140,20 +140,17 @@ Optional<WebhookObject> findByIdIgnoreCase(@Param("id") String id);
 ## zoom Controller, Service 클래스구분(2025.10.22)
 webhook, api, db, websocket, restapi  등 교차되는 요청들이 많아 컨트롤러 별 역할 및 요청목록을 명확하게 분리할 필요가 있음.
 ### 3계층 구조(Controller → Service → Repository)
-Controller: HTTP 요청 처리 담당
-Service: 비즈니스 로직 담당
-Repository: (있다면) 데이터 액세스 담당
+Controller: HTTP 요청 처리 담당 : 3ea
+Service: 비즈니스 로직 담당 : 3ea
+Repository: 데이터 액세스 담당 : 3ea
 
-### 컨트롤러 3개, 서비스는 5개
 * RestController - 브라우저 사용자의 요청시, ResponseEntity 제공 
 * ViewController - 브라우저 사용자의 요청시, 정적 html 화면 및 model 담은 페이지명 반환.
 * WebhookController - Zoom 사이트에서 사용자변경사항을 webhook 으로 제공함. webhook 파싱해서 event 종류별로 다른 서비스를 호출함. 
 
-* WebhookEventService - webhook 로그기록 테이블을 crud 
-* UserListService - 사용자 테이블을 crud
 * ZoomApiService - Zoom 사이트에 API 요청하고, 받은 데이터 String Json 형태로 반환.( 외부 연동 전용 )
 * DataService - 테이블 데이터와 API 데이터의 통합조회하여 DTO 로 제공함. ( db 없으면 api 호출 후 저장하고 반환함) 
-* WebSocketService - 큐를 관리하며, 사용자에게 websocekt 전달
+* WebSocketService - 큐를 관리하며, 사용자에게 websocket 전달
 
 * UserListRepository - zoom Api 에서 받은 사용자정보 저장
 * WebhookEventRepository - zoom Webhook 에서 받은 이벤트정보 저장
@@ -161,3 +158,89 @@ Repository: (있다면) 데이터 액세스 담당
 
   WebhookController → WebhookEventService 호출 부분은
   I/O 부하가 크다면 @Async 또는 메시지큐(kafka, redis pub/sub)로 분리도 고려 가능.
+
+```mermaid
+
+flowchart TB
+
+%% =============================
+%% BROWSER 영역
+%% =============================
+subgraph B[Browser UI]
+    B1[WebSocket 연결<br>ws://server/ws]
+    B4[실시간 이벤트 수신<br>-Zoom webhook 결과]
+    B3[REST 요청<br>/zoom/users, /zoom/token]
+    B2[HTML 페이지 요청<br>/index.html]
+end
+
+%% =============================
+%% SPRING SERVER 영역
+%% =============================
+subgraph S[Spring Boot Server]
+    direction TB
+
+    subgraph C[Controller Layer]
+        C3[ViewController<br> -> HTML 템플릿 반환]
+        C1[RestController<br> -> REST 응답 JSON ]
+        C4[WebhookController<br> -> Zoom Webhook 수신]
+    end
+
+    subgraph SV[Service Layer]
+        SV1[ZoomApiService<br>-> Zoom API 호출-외부통신]
+        SV4[DataService<br>-> DB + API 통합조회/캐싱]
+        SV5[WebSocketService<br>-> 실시간 메시지 push]
+    end
+
+    subgraph RP[Repository Layer]
+        RP1[WebhookEventRepository<br>-> Webhook 로그 CRUD]
+        RP3[WebhookObjectRepository<br>-> Webhook 로그 CRUD]
+        RP2[UserListRepository<br>-> 사용자 CRUD]
+    end
+
+    subgraph DB[Database]
+        D1[(Webhook 로그 테이블)]
+        D2[(사용자 테이블)]
+    end
+end
+
+%% =============================
+%% ZOOM 외부 API 영역
+%% =============================
+subgraph Z[Zoom Platform -External]
+    Z1[Zoom REST API<br>Access Token, User API 등]
+    Z2[Zoom Webhook<br>이벤트 POST 전송]
+end
+
+%% =============================
+%% 흐름 연결선
+%% =============================
+
+B2 --> C3
+B3 --> C1
+B1 <--> SV5
+B4 <--- SV5
+
+C1 --> SV4
+C3 --> SV4
+C4 --> SV5
+C4 --> RP1 --> RP3 --> D1
+    
+SV4 --> SV1
+SV4 --> RP2 --> D2
+
+Z2 --> C4
+
+SV1 <--> Z1
+
+
+%% =============================
+%% 화살표 스타일 및 주석
+%% =============================
+%% REST 요청/응답
+linkStyle 0,1 stroke:#2b7ce9,stroke-width:2px
+%% WebSocket
+linkStyle 2,3 stroke:#34b233,stroke-width:2px,stroke-dasharray: 4 2
+%% Zoom Webhook
+linkStyle 12 stroke:#ff6600,stroke-width:2px
+
+```
