@@ -150,7 +150,7 @@ public class ZoomApiService {
                     requestEntity,
                     String.class
             );
-            System.out.println("client - response: " + response.getStatusCode() + response.getBody());
+            log.debug("[test] client - response: " + response.getStatusCode() + response.getBody());
 
             // 토큰 저장
             String responseBody = response.getBody();
@@ -167,7 +167,7 @@ public class ZoomApiService {
 
             try{
                 redirectResponse.sendRedirect(redirectUri);
-                System.out.println("authorize - sendRedirect");
+                log.debug("[test] authorize - sendRedirect");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -181,7 +181,7 @@ public class ZoomApiService {
                     "client_credentialsUrl \n" +
                     client_credentialsUrl;
 
-            System.out.println(messages);
+            log.debug("[test]" + messages);
             model.addAttribute("messages",messages);
         } catch (JsonProcessingException e) {
             model.addAttribute("messages",e.toString());
@@ -205,7 +205,7 @@ public class ZoomApiService {
      *<br>}
      * **/
     public String getZoomApiAuth(HttpServletRequest req, @RequestParam String code, Model model) {
-        System.out.println("redirect_uri: "+ "zoom/get/auth");
+        log.debug("redirect_uri: "+ "zoom/get/auth");
 
         if(req.getParameter("code") != null) {
             AUTHORIZATION_CODE = req.getParameter("code");
@@ -228,7 +228,7 @@ public class ZoomApiService {
                         requestEntity,
                         String.class
                 );
-                System.out.println("token - response: " + response.getStatusCode() + response.getBody());
+                log.debug("token - response: " + response.getStatusCode() + response.getBody());
 
                 // 토큰 저장
                 String responseBody  = response.getBody();
@@ -237,7 +237,7 @@ public class ZoomApiService {
                 USER_ACCESS_TOKEN = jsonNode.get("access_token").asText();
                 USER_REFRESH_TOKEN = jsonNode.get("refresh_token").asText();
                 setTokenHeaders(USER_ACCESS_TOKEN);
-                System.out.println("access_token : " + USER_ACCESS_TOKEN);
+                log.debug("access_token : " + USER_ACCESS_TOKEN);
 
             } catch (HttpClientErrorException e) {
                 String messages = "token - error: " +
@@ -248,7 +248,7 @@ public class ZoomApiService {
                         "requestBody \n" +
                         requestBody;
 
-                System.out.println(messages);
+                log.debug(messages);
                 model.addAttribute("messages",messages);
             } catch (JsonProcessingException e) {
                 model.addAttribute("messages",e.toString());
@@ -286,7 +286,7 @@ public class ZoomApiService {
                     String.class
             );
 
-            System.out.println("account_credentials - response: " + response.getStatusCode() + response.getBody());
+            log.debug("account_credentials - response: " + response.getStatusCode() + response.getBody());
 
             // 토큰 저장
             String responseBody = response.getBody();
@@ -343,7 +343,6 @@ public class ZoomApiService {
             Object jsonObject = objectMapper.readValue(response.getBody(), Object.class);
             String prettyJsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
 
-            System.out.println(prettyJsonString);
             return prettyJsonString;
 
         } catch (Exception e) {
