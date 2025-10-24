@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -89,6 +90,43 @@ public class DataService {
 
         UserList userDto = objectMapper.readValue(json, new TypeReference<UserList>() {});
         return userListRepository.save(userDto);
+    }
+
+    /** api 기준으로 db 업데이트, status 만 기존 데이터 유지 **/
+    public List<UserList> readUserListMatchGetUserListAndSave() throws JsonProcessingException {
+        List<UserList> db = userListRepository.findAll();
+        List<UserList> api = getUserList("");
+        //db 에 있지만 api 없으면 setDeleted(true);
+        //db 에 없지만 api 있으면 db.add(api.get(i));
+        Map<String, UserList> dbMap = db.stream()
+                .collect(Collectors.toMap(UserList::getId, u -> u));
+        Map<String, UserList> apiMap = api.stream()
+                .collect(Collectors.toMap(UserList::getId, u -> u));
+
+        // 결과 저장 리스트
+        List<UserList> result = new ArrayList<>();
+
+        // 1) DB 에만 존재 → deleted = true
+        for (UserList dbUser : db) {
+            if (!apiMap.containsKey(dbUser.getId())) {
+                dbUser.setDeleted(true);
+                log.debug("[test]  DB 에만 존재 : {}", dbUser.toString());
+                result.add(dbUser);
+            }
+        }
+        for (UserList apiUser : api) {
+            if (!dbMap.containsKey(apiUser.getId())) {
+                // 2) API 에만 존재 → 신규 추가
+                //apiUser.setDeleted(false);  //기본값
+                result.add(apiUser);
+            }else {
+                // 3) 공통 사용자 → API 정보를 기본으로 덮어쓰되, status 는 DB 기준 유지
+                UserList dbUser = dbMap.get(apiUser.getId());
+                apiUser.setStatus(dbUser.getStatus());
+                result.add(apiUser);
+            }
+        }
+        return userListRepository.saveAll(db);
     }
 
     //// DB 단순조회

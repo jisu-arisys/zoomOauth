@@ -50,9 +50,20 @@ public class RESTController {
 
     /** 사용자 목록 조회 **/
     @GetMapping("/userlist")
-    public ResponseEntity<List<UserList>> getUserlist() throws JsonProcessingException {
-        //DB 조회 > 없으면 api 다중 호출 후 DB 저장
-        List<UserList> list = dataService.readUserListOrGetUserListAndSave();
+    public ResponseEntity<List<UserList>> getUserlist(@Param(value = "false") String force) throws JsonProcessingException {
+        boolean isForce = Boolean.parseBoolean(force);
+        List<UserList> list;
+        if (isForce) {
+            //api 호출 후 DB 저장
+            list = dataService.readUserListMatchGetUserListAndSave();
+            log.debug("[test] isForce readUserListMatchGetUserListAndSave() {}건 DB 중", list.size());
+            list = dataService.readAllUserNotDeleted();
+            log.debug("[test] {}건 반환", list.size());
+        } else {
+            //DB 조회 > 없으면 api 호출 후 DB 저장
+            log.debug("[test] readUserListOrGetUserListAndSave()");
+            list = dataService.readUserListOrGetUserListAndSave();
+        }
         return ResponseEntity.ok(list);
     }
 
@@ -69,6 +80,21 @@ public class RESTController {
             user = dataService.readUserOrGetUserAndSave(userId);
         }
         return ResponseEntity.ok(user);
+    }
+
+    /** 사용자 목록 변경사항 조회 **/
+    @GetMapping("/user/reload/userlist")
+    public ResponseEntity<List<UserList>> getUserListReLoadFromAPI(@Param(value = "false") String force) throws JsonProcessingException {
+        boolean isForce = Boolean.parseBoolean(force);
+        List<UserList> users;
+        if (isForce) {
+            //api 호출 후 DB 저장
+            users = dataService.readUserListMatchGetUserListAndSave();
+        } else {
+            //DB 조회 > 없으면 api 호출 후 DB 저장
+            users = dataService.readUserListOrGetUserListAndSave();
+        }
+        return ResponseEntity.ok(users);
     }
 
 }

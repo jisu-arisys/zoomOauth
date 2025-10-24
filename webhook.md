@@ -255,7 +255,31 @@ linkStyle 12 stroke:#ff6600,stroke-width:2px
 ```
 
 
-### 사용자 CRUD (논리 삭제)
+## 사용자 CRUD (논리 삭제)
 
 사용자 추가,수정,활성화,비활성화 webhook -> object.id 추출해 zoom api 로 사용자 정보 요청, DB 저장
 사용자 삭제 webhook -> object.id 추출해 사용자 조회, userlist.deleted 값을 true 로 수정.
+사용자 전체 다시조회 -> DB 에만 있으면 deleted 처리, 대부분 데이터는 api 기준으로 업데이트, status 값만 DB 기준으로 저장.
+
+webhook 반응있는 정보
+### 프로필 편집
+성 : new `ok`=> "first_name" : "new"
+이름 : Test `ok`=> "last_name" : "Test"
+표시 이름 : new Test `ok`=> "display_name" : "new Test"
+언어 : 한국어 `ok`=> "language":"en-US" -> "language" : "ko-KO"
+
+### 사용자 편집
+라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임 라이센스는 별도 /users/{userId}/settings api 조회 필요.
+사용자 역할 : Test `ok` => "role_id" : "RkMP5mdHqTgGL2dOx_vOg3Q"
+부서 : deleted_edit `ok` => "dept"
+관리자 : ZOOM API `no` => "manager" : "test_zoom@arisys.co.kr"
+직함 : tester `no` => "job_title" : "tester",
+위치 : Seoul `no` => "location" : "Seoul"
+비용 센터 : center `no` => "cost_center" : "center"
+사용자 그룹 : 1 `no` => "group_ids" : [ "9QHk9NYERjadNIJf46XnfQ" ]
+
+
+TIP : type 별 라이센스 차이
+1 : Zoom Meetings 기본
+2 : Zoom Workplace 비즈니스
+4: 할당된 라이선스 없음

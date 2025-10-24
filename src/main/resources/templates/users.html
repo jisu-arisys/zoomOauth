@@ -48,7 +48,7 @@
             border: none;
             border-radius: 10px;
             font-size: 10px;
-            width: 60px;
+            /*width: 60px;*/
             height: 30px;
             margin: 5px;
         }
@@ -163,6 +163,7 @@
         </div>
     </div>
     <h5>web socket status <span id="establish" style="color: darkred; font-weight: bold">ON</span></h5>
+    <button class="btn" type="button" onclick="getList(true)">api 사용자목록 다시 불러오기</button>
 </header>
 
 <div id="board" class="border">
@@ -271,7 +272,7 @@
     function getList(force = false) {
         // 초기 사용자 데이터는 REST API로 가져오기
         $.ajax({
-            url: '/api/userlist',
+            url: '/api/userlist' + (force ? '?force=true' : ''),
             method: 'GET',
             dataType: 'json', // 서버에서 반환하는 List<UserList>를 JSON으로 처리
             success: function (data, status, xhr) {
@@ -339,8 +340,8 @@
                 const data = JSON.parse(message.body);
                 console.log('Received:', data);
                 writeLog(data);
-                if(confirm("사용자 "+ data.email +"가 추가되었습니다.")){
-                    initCard([data]);
+                if(confirm("사용자 "+ data.object.email +"가 추가되었습니다.")){
+                    initCard([data.object]);
                 }
             });
 
