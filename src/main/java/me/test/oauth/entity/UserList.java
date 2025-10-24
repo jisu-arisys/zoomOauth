@@ -66,4 +66,7 @@ public class UserList {
 
     @Column(name = "user_created_at")
     private LocalDateTime userCreatedAt;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 }

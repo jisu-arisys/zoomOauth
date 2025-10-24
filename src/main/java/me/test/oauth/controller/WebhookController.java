@@ -64,10 +64,18 @@ public class WebhookController {
             WebhookEvent saved = dataService.saveWebhook(event, payload, json);
 
             //webhook -> API 호출 or DB 업데이트
+            String objectId = saved.getObject().getId();
+            UserList user;
             switch (event) {
                 case "user.created":
-                    String email = saved.getObject().getEmail();
-                    UserList reloaded = dataService.readUserOrGetUserAndSave(email);
+                case "user.updated":
+                case "user.deactivated":
+                case "user.activated":
+                    user = dataService.readUserIdOrGetUserAndSave(objectId);
+                    break;
+                case "user.deleted":
+                    log.warn("[test] user.deleted : {}", json);
+                    user = dataService.setUserIdDeleted(objectId);
                     break;
                 case "user.presence_status_updated":
                     dataService.updateStatus(payload);

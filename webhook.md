@@ -114,10 +114,19 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
 4. zoom api 를 호출해 DB 정보를 업데이트 한다. /api/user/{email} or /api/user/ -> 조회 후 업데이트시 기존 실시간상태가 변경됨. -> 별도 테이블로 구성을 바꿀지 고민됨. 단일이라면 조회 - 수정 - 업데이트 하면 됨. 실시간 데이터 누락이 간혹 있을 수 있음.
 
 
-### 로그인/로그아웃
-
+### 미처리 웹훅 
 zoomReceive user.signed_out : {event=user.signed_out, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=WfW3epgHTnGfUWLgGkYiGg, client_type=browser, date_time=2025-10-17T06:05:48Z, version=-, login_type=100, email=ysshim@arisys.co.kr}}, event_ts=1760681148192}
 zoomReceive user.signed_in : {event=user.signed_in, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=t2bS3bJKRamtTrbWCKMVtA, client_type=browser, date_time=2025-10-17T06:06:37Z, version=-, login_type=100, email=jisu_um@arisys.co.kr}}, event_ts=1760681197150}
+default event : {event=user.updated, event_ts=1761185656764, account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=vs0aVx7zRju8I2wBInA7cw, dept=test}, old_object={id=vs0aVx7zRju8I2wBInA7cw, dept=}, time_stamp=1761185656764}
+보류중 사용자가 이메일 인증시, 생성시 등록했던 dept 설정값 변경에 따른 user.updated 이벤트가 발생함.
+zoomReceive user.deactivated : {event=user.deactivated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186173638}
+사용자 비활성화 처리로 웹훅 발생.
+zoomReceive user.activated : {event=user.activated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186224746}
+사용자 활성화 처리로 웹훅 발생
+user.updated : {event=user.updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, display_name=엄지수/202534-361694, pic_url=https://arisys-co-kr.zoom.us/p/v2/7d1b16d2bfdf767071997f6ad040ca3c9ef6d9330c35ec0bb7ac5b08383737ed/e4443598-7600-48a2-97ea-0e5821fd6d49-8097, pmi=6351440719, use_pmi=false, timezone=Asia/Seoul, language=ko-KO}, old_object={id=, first_name=, last_name=, display_name=, pic_url=, timezone=, language=}, time_stamp=1761186658371}, event_ts=1761186658371}
+zoomReceive user.deleted : {event=user.deleted, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186658403}
+활성화된 사용자 삭제시, 웹훅 발생 The request of deleting 1 user at 10/23/2025 11:30:58 AM has been processed
+
 
 ### webhookEvent 엔티티 생성(2025.10.17)
 반복되는 구조의 웹훅을 파싱하기 간편하게 하면서, 실시간으로 DB 에 이벤트로그를 저장하기 위한 중첩된 엔티티 생성.
@@ -223,15 +232,15 @@ B4 <--- SV5
 C1 --> SV4
 C3 --> SV4
 C4 --> SV5
-C4 --> RP1 --> RP3 --> D1
+C4 --> SV4
     
 SV4 --> SV1
 SV4 --> RP2 --> D2
+SV4 --> RP1
+RP1 --> RP3 --> D1
 
 Z2 --> C4
-
 SV1 <--> Z1
-
 
 %% =============================
 %% 화살표 스타일 및 주석
@@ -244,3 +253,9 @@ linkStyle 2,3 stroke:#34b233,stroke-width:2px,stroke-dasharray: 4 2
 linkStyle 12 stroke:#ff6600,stroke-width:2px
 
 ```
+
+
+### 사용자 CRUD (논리 삭제)
+
+사용자 추가,수정,활성화,비활성화 webhook -> object.id 추출해 zoom api 로 사용자 정보 요청, DB 저장
+사용자 삭제 webhook -> object.id 추출해 사용자 조회, userlist.deleted 값을 true 로 수정.

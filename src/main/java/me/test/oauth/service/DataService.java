@@ -91,11 +91,26 @@ public class DataService {
         return userListRepository.save(userDto);
     }
 
+    //// DB 단순조회
+    public List<UserList> readAllUserNotDeleted(){
+        List<UserList> users = userListRepository.findByDeletedFalse();
+        return users;
+    }
+
+    public UserList readUserById(String userId){
+        UserList user = (UserList) userListRepository.findByEmail(userId).orElse(null);
+        return user;
+    }
+
+    public UserList readUserByEmail(String email) {
+        UserList user = (UserList) userListRepository.findByEmail(email).orElse(null);
+        return user;
+    }
 
     //// DB 우선조회
     /** 전체 사용자 목록을 불러옴 **/
     public List<UserList> readUserListOrGetUserListAndSave() throws JsonProcessingException {
-        List<UserList> user = userListRepository.findAll();
+        List<UserList> user = readAllUserNotDeleted();
         if (user.isEmpty()) {
             user = getUserList("");
         }
@@ -111,6 +126,16 @@ public class DataService {
     /** 사용자 정보 조회 **/
     public UserList readUserIdOrGetUserAndSave(String userId) throws JsonProcessingException {
         UserList user = (UserList) userListRepository.findById(userId).orElse(getUser(userId));
+        return user;
+    }
+
+    /** 사용자 삭제가 발생한 경우, 사용자 정보를 찾아서 deleted 값을 true 로 저장 **/
+    public UserList setUserIdDeleted(String userId) throws JsonProcessingException {
+        UserList user = (UserList) userListRepository.findById(userId).orElse(getUser(userId));
+        if (user != null) {
+            user.setDeleted(true);
+            userListRepository.save(user);
+        }
         return user;
     }
 
@@ -156,5 +181,4 @@ public class DataService {
         }
         return false;
     }
-
 }
