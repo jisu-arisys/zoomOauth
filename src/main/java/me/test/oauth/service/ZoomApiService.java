@@ -259,7 +259,7 @@ public class ZoomApiService {
         }else {
             model.addAttribute("messages", "Authorize Code is null");
         }
-        System.out.printf("code: %s", code);
+        log.debug("code: %s", code);
 
         setModelObject(model);
         return "zoom";
@@ -327,7 +327,7 @@ public class ZoomApiService {
         String profix = "fail";
         // 요청 가능여부 검증
         if(tokenHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
+            log.debug("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
             return profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl;
         }
 
@@ -361,7 +361,7 @@ public class ZoomApiService {
         String postUrl = zoomApiBaseUrl + url;
         // 요청 가능여부 검증
         if(postHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", postUrl);
+            log.debug("tokenHeaders is null. fail to get api %s\n", postUrl);
             return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl);
         }
 
@@ -390,7 +390,7 @@ public class ZoomApiService {
         String postUrl = zoomApiBaseUrl + url;
         // 요청 가능여부 검증
         if(postHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", postUrl);
+            log.debug("tokenHeaders is null. fail to get api %s\n", postUrl);
             return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl);
         }
 
@@ -424,7 +424,7 @@ public class ZoomApiService {
         String profix = "fail";
         // 요청 가능여부 검증
         if(tokenHeaders == null) {
-            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
+            log.debug("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
             //return profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl;
             return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl);
         }

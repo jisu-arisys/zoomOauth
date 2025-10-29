@@ -41,7 +41,6 @@ public class DataService {
     @Deprecated
     public List<UserList> getUserList1(String userId) throws JsonProcessingException {
         String usersUrl = "/users/" + userId;
-        System.out.println(usersUrl);
         List<UserList> allUsers = new ArrayList<>();
         String nextPageToken = "";
 
@@ -78,7 +77,6 @@ public class DataService {
 
     /** api 조회 후 DB 저장하고 리스트 dto 반환 v2**/
     public List<UserList> getUserList(String userId) throws JsonProcessingException {
-
         List<UserList> allUsers = new ArrayList<>();
         String url = userId.isBlank() ? "/users" : "/users/" + userId;
         String nextPageToken = "";
@@ -117,7 +115,7 @@ public class DataService {
     /** api 조회 후 DB 저장하고 리스트 dto 반환 **/
     public UserList getUser(@RequestParam String userId) throws JsonProcessingException {
         String usersUrl = "/users/" + userId;
-        System.out.println(usersUrl);
+        log.debug("getUser : {}", usersUrl);
 
         //사용자 한명 조회
         String json = zoomApiService.getApi(usersUrl);
@@ -207,8 +205,8 @@ public class DataService {
 
     //// DB 저장
     /** 검증된 webhook 이벤트를 받으면, DB에 담아 로그를 남김**/
-    public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) throws JsonProcessingException {
-        log.info("saveWebhook : {}\n{}", event, payloadMap);
+    public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) {
+        log.info("saveWebhook : {} - {}", event, payloadMap);
         json.putAll(payloadMap);
         json.remove("payload");
         WebhookEvent webhookEvent = objectMapper.convertValue(json, WebhookEvent.class);

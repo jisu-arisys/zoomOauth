@@ -2,6 +2,7 @@ package me.test.oauth.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.service.ZoomApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 /** html 화면 및 model 출력을 위한 컨트롤러 **/
 @Controller
+@Slf4j
 public class ViewController {
 
     @Autowired
@@ -40,7 +42,7 @@ public class ViewController {
     /** 모든 정보 초기화 **/
     @GetMapping("/zoom/resetToken")
     public String resetToken(Model model) {
-        System.out.println("/resetToken");
+        log.info("/resetToken");
         zoomApiService.resetToken(model);
         return "zoom";
     }
@@ -71,7 +73,7 @@ public class ViewController {
     @GetMapping("/zoom/users")
     public String getUsers(@RequestParam String userId, Model model) {
         String usersUrl = "/users/" + userId;
-        System.out.println(usersUrl);
+        log.info(usersUrl);
         String json = zoomApiService.getApi(usersUrl);
         zoomApiService.setModelObject(model);
         model.addAttribute("users", json);
@@ -82,7 +84,7 @@ public class ViewController {
     @GetMapping("/zoom/schedulers")
     public String getScheduledMeetingIdZoomApi(@RequestParam String userId, Model model) {
         String schedulesUrl = "/users/" + userId + "/schedulers";
-        System.out.println(schedulesUrl);
+        log.info(schedulesUrl);
         String json = zoomApiService.getApi(schedulesUrl);
         zoomApiService.setModelObject(model);
         model.addAttribute("schedulers", json);
@@ -93,7 +95,7 @@ public class ViewController {
     @GetMapping("/zoom/meetings")
     public String getMeetingIdZoomApi(@RequestParam String userId, Model model) {
         String meetingUrl = "/users/" + userId + "/meetings";
-        System.out.println(meetingUrl);
+        log.info(meetingUrl);
         String json = zoomApiService.getApi(meetingUrl);
         zoomApiService.setModelObject(model);
         model.addAttribute("meetings", json);
@@ -104,7 +106,7 @@ public class ViewController {
     @GetMapping("/zoom/phone/call_history")
     public String getCallHistoriesZoomApi(Model model) {
         String callsUrl = "/phone/call_history";
-        System.out.println(callsUrl);
+        log.info(callsUrl);
         String json = zoomApiService.getApi(callsUrl);
         zoomApiService.setModelObject(model);
         model.addAttribute("logs", json);
@@ -115,7 +117,7 @@ public class ViewController {
     @GetMapping("/zoom/phone/call_history_detail")
     public String getCallDetailZoomApi(@RequestParam String callLogId, Model model) {
         String callUrl = "/phone/call_history_detail/" + callLogId;
-        System.out.println(callUrl);
+        log.info(callUrl);
         String json = zoomApiService.getApi(callUrl);
         zoomApiService.setModelObject(model);
         model.addAttribute("log", json);
