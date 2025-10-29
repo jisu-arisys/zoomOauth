@@ -268,6 +268,7 @@ webhook 반응있는 정보
 * 이름 : Test `ok`=> "last_name" : "Test"
 * 표시 이름 : new Test `ok`=> "display_name" : "new Test"
 * 언어 : 한국어 `ok`=> "language":"en-US" -> "language" : "ko-KO"
+* 회사 : 아리시스 `ok`=> "company" : "Example, Inc."
 
 ### 사용자 편집
 * 라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임 라이센스는 별도 /users/{userId}/settings api 조회 필요.

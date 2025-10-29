@@ -113,7 +113,7 @@ public class RESTController {
     }
 
     @PostMapping("/user/update/detail/{userId}")
-    public ResponseEntity<String> updateUserDetail(@RequestBody String userId, @RequestBody Map<String, Object> bodyMap) {
+    public ResponseEntity<String> updateUserDetail(@PathVariable String userId, @RequestBody Map<String, Object> bodyMap) {
         log.info("[test]updateUserDetail : {}", userId);
         ResponseEntity<String> response = zoomApiService.api("/users/" + userId, HttpMethod.PATCH, bodyMap);
         return response;

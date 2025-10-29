@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,10 +30,11 @@ import java.util.Map;
 @Service
 @PropertySource("classpath:zoom.properties")
 @Slf4j
+@RequiredArgsConstructor
 public class ZoomApiService {
 
-    /** HTTP 통신을 위한 도구로 REST full API 웹 서비스와의 상호작용을 쉽게 외부 도메인에서 데이터를 가져오거나 전송할 때 사용되는 스프링 프레임워크의 클래스**/
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** HTTP 통신을 위한 도구로 REST full API 웹 서비스와의 상호작용을 쉽게 외부 도메인에서 데이터를 가져오거나 전송할 때 사용되는 스프링 프레임워크의 클래스. PATCH 지원을 위해 스프링에 등록해둔 빈을 주입받아야함. 직접생싱시 PATCH 사용불가**/
+    private final RestTemplate restTemplate;
     /** 권한요청용 base url **/
     @Value("${zoom.oauth.endpoint}")
     private String zoomOauthEndpoint;
