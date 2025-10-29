@@ -147,13 +147,14 @@ public class DataService {
         for (UserList dbUser : db) {
             if (!apiMap.containsKey(dbUser.getId())) {
                 dbUser.setDeleted(true);
-                log.debug("[test]  DB 에만 존재 : {}", dbUser.toString());
+                log.debug("[test]  DB 에만 존재 : {}", dbUser.getEmail());
                 result.add(dbUser);
             }
         }
         for (UserList apiUser : api) {
             if (!dbMap.containsKey(apiUser.getId())) {
                 // 2) API 에만 존재 → 신규 추가
+                log.debug("[test]  API 에만 존재 : {}", apiUser.getEmail());
                 //apiUser.setDeleted(false);  //기본값
                 result.add(apiUser);
             }else {
@@ -207,7 +208,7 @@ public class DataService {
     //// DB 저장
     /** 검증된 webhook 이벤트를 받으면, DB에 담아 로그를 남김**/
     public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) throws JsonProcessingException {
-        log.info("[test]saveWebhook : {}\n{}", event, payloadMap);
+        log.info("saveWebhook : {}\n{}", event, payloadMap);
         json.putAll(payloadMap);
         json.remove("payload");
         WebhookEvent webhookEvent = objectMapper.convertValue(json, WebhookEvent.class);
@@ -219,26 +220,24 @@ public class DataService {
     public boolean updateStatus(Map<String, Object>  payload){
         Map<String,Object> event = (Map<String,Object>)payload.get("object");
         String email = "";
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("event", "error");
         try {
             email = (String) event.get("email");
             String stats = (String) event.get("presence_status");
             UserList userStats = (UserList) userListRepository.findByEmail(email).orElse(getUser(email));
             userStats.setStatus(stats);
             UserList result = userListRepository.save(userStats);
-            log.info("[test]updateStatus success : {} {}", result.getId(), result.getStatus());
+            log.info("updateStatus success : {} - {}", result.getEmail(), result.getStatus());
             return true;
 
         }catch (NullPointerException e){
-            log.info("[test]updateStatus fail NullPointerException: {}", e.getMessage());
-            Map<String, Object> error = new LinkedHashMap<>();
-            error.put("event", "error");
+            log.warn("[test]updateStatus fail NullPointerException: {}", e.getMessage());
             error.put("message", String.format("findByEmail %s is NullPointerException", email));
             error.put("detail", e.getMessage());
             webSocketService.enqueueException(error);
         }catch (Exception e){
-            log.info("[test]updateStatus fail : {}", e.getMessage());
-            Map<String, Object> error = new LinkedHashMap<>();
-            error.put("event", "error");
+            log.warn("[test]updateStatus fail : {}", e.getMessage());
             error.put("message", String.format("maybe event data is not exist, check the event data : {}", event));
             error.put("detail", e.getMessage());
             webSocketService.enqueueException(error);

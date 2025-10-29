@@ -46,7 +46,7 @@ public class WebhookController {
 
             String event = (String)json.get("event");
             LinkedHashMap<String, Object> payload = (LinkedHashMap<String, Object>)json.get("payload");
-            log.info("[test]zoomReceive {} : {}", event, json);
+            log.info("zoomReceive {} : {}", event, json);
 
             //webhook 검증
             switch (event) {
@@ -108,7 +108,7 @@ public class WebhookController {
         String jsonBody = objectMapper.writeValueAsString(json);
         String hashingSignature = SHA256Cipher.generateZoomHmac(secretToken, timestamp, jsonBody);
         boolean isZoomWebhook = hashingSignature.equals(signature);
-        log.info("[test]VerifyWithZoomHeader : {} isZoomWebhook : {}", hashingSignature, isZoomWebhook);
+        log.info("VerifyWithZoomHeader : {} isZoomWebhook : {}", hashingSignature, isZoomWebhook);
         return isZoomWebhook;
     }
 

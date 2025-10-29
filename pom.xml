@@ -97,6 +97,13 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+<!--        MacOS 환경이면 Netty가 DNS 조회 최적화를 위해 native resolver 를 사용-->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId>
+            <version>4.2.2.Final</version>
+            <classifier>osx-aarch_64</classifier>
+        </dependency>
 	</dependencies>
 
 	<build>
