@@ -8,7 +8,7 @@ import me.test.oauth.service.DataService;
 import me.test.oauth.service.ZoomApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -41,11 +41,8 @@ public class RESTController {
 
         //상태변경
         String changeUrl = "/users/" + userId + "/presence_status";
-        String json = zoomApiService.postApi(changeUrl, bodyMap);
-        if (json.startsWith("fail")){
-            return ResponseEntity.badRequest().body(json);
-        }
-        return ResponseEntity.ok("success");
+        ResponseEntity<String> response = zoomApiService.api(changeUrl, HttpMethod.PUT, bodyMap);
+        return response;
     }
 
     /** 사용자 목록 조회 **/
@@ -95,6 +92,31 @@ public class RESTController {
             users = dataService.readUserListOrGetUserListAndSave();
         }
         return ResponseEntity.ok(users);
+    }
+
+    @PostMapping("/user/create/autoCreate")
+    public ResponseEntity<String> createUserAutoCreate(@RequestBody Map<String, Object> bodyMap){
+        log.info("[test]createUserAutoCreate : {}", bodyMap);
+        ResponseEntity<String> json = zoomApiService.api("/users", HttpMethod.POST, bodyMap);
+        log.debug("[test]createUserAutoCreate json: {}", json);
+        //성공시 웹훅이벤트 받은 뒤 DB 업데이트됨.
+        return json;
+    }
+
+    @DeleteMapping("/user/delete/{userId}")
+    public ResponseEntity<String> deleteUser(@PathVariable String userId) {
+        log.info("[test]deleteUser : {}", userId);
+        ResponseEntity<String> response = zoomApiService.api("/users/"+userId, HttpMethod.DELETE, null);
+        log.debug("[test]deleteUser json: {}", response.getBody());
+        //성공시 웹훅이벤트 받은 뒤 DB 업데이트됨.
+        return response;
+    }
+
+    @PostMapping("/user/update/detail/{userId}")
+    public ResponseEntity<String> updateUserDetail(@RequestBody String userId, @RequestBody Map<String, Object> bodyMap) {
+        log.info("[test]updateUserDetail : {}", userId);
+        ResponseEntity<String> response = zoomApiService.api("/users/" + userId, HttpMethod.PATCH, bodyMap);
+        return response;
     }
 
 }

@@ -74,8 +74,12 @@ public class WebhookController {
                     user = dataService.readUserIdOrGetUserAndSave(objectId);
                     break;
                 case "user.deleted":
-                    log.warn("[test] user.deleted : {}", json);
+                case "user.disassociated":
+                    log.warn("[test] user.deleted / disassociated : {}", json);
                     user = dataService.setUserIdDeleted(objectId);
+                    if (user == null) {
+                        webSocketService.enqueueException(Map.of("event", "error", "message", "user.deleted / disassociated : " + objectId));
+                    }
                     break;
                 case "user.presence_status_updated":
                     dataService.updateStatus(payload);

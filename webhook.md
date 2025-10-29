@@ -25,9 +25,7 @@ zoom 에서 등록된 url 로 보낸 요청에 정해진 양식의 응답을 전
 
 ```
 {"payload":{"plainToken":"2oXY7bAKQLCwXDMECt8m_g"},"event_ts":1759205906459,"event":"endpoint.url_validation"}
-
 v0=cc554ff6791064729e68faf78c9e97e9f49d8a1f2094deabbf1b22076a6dc187
-
 {"plainToken":"2oXY7bAKQLCwXDMECt8m_g","encryptedToken":"7c8fb1a685a782598c47b2cc75da736108fb1d7ceb223837f7ae69c1bdefb3ac"}
 ```
 
@@ -89,7 +87,7 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
 
 1. 완료일자 2025.10.13
     개인계정에서 test_zoom@arisys.co.kr 로 계정을 변경한 후 webhook 검증 불가.
-    원인 : WebhookController.secretToken 클래스변수값에 개인계정의 토큰값이 하드코딩 되어 있었음. 제거 후 정상동작?
+    원인 : WebhookController.secretToken 클래스변수값에 개인계정의 토큰값이 하드코딩 되어 있었음. 제거 후 정상동작
 2. 식별자 email 2025.10.13
    사용자 정보를 구별하기 위한 userlist 테이블에서는 식별자로 id 를 사용중이나, 
    대소문자 혼동으로 인한 이슈가 있어 JPA 호출시에는 email 로 식별하고 있음.
@@ -109,30 +107,33 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
 1. zoom.us/account/user 에서 사용자 추가
 2. test_user_add@arisys.co.kr 생성 (줌폰 라이센스 미할당)
 3. 웹훅 수신됨
-[test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, first_name=, last_name=, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760337064042}
-[test]zoomReceive {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760342138985}
 4. zoom api 를 호출해 DB 정보를 업데이트 한다. /api/user/{email} or /api/user/ -> 조회 후 업데이트시 기존 실시간상태가 변경됨. -> 별도 테이블로 구성을 바꿀지 고민됨. 단일이라면 조회 - 수정 - 업데이트 하면 됨. 실시간 데이터 누락이 간혹 있을 수 있음.
 
 
-### 미처리 웹훅 
-zoomReceive user.signed_out : {event=user.signed_out, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=WfW3epgHTnGfUWLgGkYiGg, client_type=browser, date_time=2025-10-17T06:05:48Z, version=-, login_type=100, email=ysshim@arisys.co.kr}}, event_ts=1760681148192}
-zoomReceive user.signed_in : {event=user.signed_in, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=t2bS3bJKRamtTrbWCKMVtA, client_type=browser, date_time=2025-10-17T06:06:37Z, version=-, login_type=100, email=jisu_um@arisys.co.kr}}, event_ts=1760681197150}
-default event : {event=user.updated, event_ts=1761185656764, account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=vs0aVx7zRju8I2wBInA7cw, dept=test}, old_object={id=vs0aVx7zRju8I2wBInA7cw, dept=}, time_stamp=1761185656764}
+### 웹훅
+* zoomReceive user.created : {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, first_name=, last_name=, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760337064042}
+* zoomReceive user.created : {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=bdFD6relTFKtryY5sAqOMA, display_name=test_user_add@arisys.co.kr, email=test_user_add@arisys.co.kr, type=1}}, event_ts=1760342138985}
+* zoomReceive user.signed_out : {event=user.signed_out, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=WfW3epgHTnGfUWLgGkYiGg, client_type=browser, date_time=2025-10-17T06:05:48Z, version=-, login_type=100, email=ysshim@arisys.co.kr}}, event_ts=1760681148192}
+* zoomReceive user.signed_in : {event=user.signed_in, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=t2bS3bJKRamtTrbWCKMVtA, client_type=browser, date_time=2025-10-17T06:06:37Z, version=-, login_type=100, email=jisu_um@arisys.co.kr}}, event_ts=1760681197150}
+* zoomReceive user.updated : {event=user.updated, event_ts=1761185656764, account_id=RuKYKI0gRmioLXZxGXzq2Q, object={id=vs0aVx7zRju8I2wBInA7cw, dept=test}, old_object={id=vs0aVx7zRju8I2wBInA7cw, dept=}, time_stamp=1761185656764}
 보류중 사용자가 이메일 인증시, 생성시 등록했던 dept 설정값 변경에 따른 user.updated 이벤트가 발생함.
-zoomReceive user.deactivated : {event=user.deactivated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186173638}
+* zoomReceive user.deactivated : {event=user.deactivated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186173638}
 사용자 비활성화 처리로 웹훅 발생.
-zoomReceive user.activated : {event=user.activated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186224746}
+* zoomReceive user.activated : {event=user.activated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186224746}
 사용자 활성화 처리로 웹훅 발생
-user.updated : {event=user.updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, display_name=엄지수/202534-361694, pic_url=https://arisys-co-kr.zoom.us/p/v2/7d1b16d2bfdf767071997f6ad040ca3c9ef6d9330c35ec0bb7ac5b08383737ed/e4443598-7600-48a2-97ea-0e5821fd6d49-8097, pmi=6351440719, use_pmi=false, timezone=Asia/Seoul, language=ko-KO}, old_object={id=, first_name=, last_name=, display_name=, pic_url=, timezone=, language=}, time_stamp=1761186658371}, event_ts=1761186658371}
-zoomReceive user.deleted : {event=user.deleted, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186658403}
-활성화된 사용자 삭제시, 웹훅 발생 The request of deleting 1 user at 10/23/2025 11:30:58 AM has been processed
+* zoomReceive user.updated : {event=user.updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, display_name=엄지수/202534-361694, pic_url=https://arisys-co-kr.zoom.us/p/v2/7d1b16d2bfdf767071997f6ad040ca3c9ef6d9330c35ec0bb7ac5b08383737ed/e4443598-7600-48a2-97ea-0e5821fd6d49-8097, pmi=6351440719, use_pmi=false, timezone=Asia/Seoul, language=ko-KO}, old_object={id=, first_name=, last_name=, display_name=, pic_url=, timezone=, language=}, time_stamp=1761186658371}, event_ts=1761186658371}
+* zoomReceive user.deleted : {event=user.deleted, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=vs0aVx7zRju8I2wBInA7cw, first_name=/학생, last_name=엄지수, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761186658403}
+활성화된 사용자 삭제시, 웹훅 발생, 팝업 뜸 (The request of deleting 1 user at 10/23/2025 11:30:58 AM has been processed)
+* zoomReceive user.disassociated : {event=user.disassociated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, object={id=Wn7ZZ5glRnWrnByQ2_jkuQ, first_name=new, last_name=Test, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761551627513}
+zoom api 요청으로 사용자를 삭제처리 시 웹훅 발생 : 기존 계정정보는 유지하돼, 조직의 사용자 목록에서 제거됨.
+* zoomReceive user.created : {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=Wn7ZZ5glRnWrnByQ2_jkuQ, first_name=new, last_name=Test, display_name=new Test, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761553396588}
+zoom api 요청으로 사용자 등록처리 시 웹훅 발생 : 일치하는 이메일의 zoom 계정이 존재하는 경우, 새로 기입한 정보는 무시되고 기존 계정정보가 유지됨. 보류중 목록에 추가됨.
+보류중인 사용자는 삭제 불가 1001 : User does not exist: $userId.
 
 
 ### webhookEvent 엔티티 생성(2025.10.17)
 반복되는 구조의 웹훅을 파싱하기 간편하게 하면서, 실시간으로 DB 에 이벤트로그를 저장하기 위한 중첩된 엔티티 생성.
-
 WebhookEvent.java -> ~~Payload.java~~ -> Object.java
-
 zoomReceive user.presence_status_updated : {event=user.presence_status_updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, object={date_time=2025-10-17T06:41:35Z, email=jisu_um@arisys.co.kr, id=t2bs3bjkramttrbwckmvta, presence_status=Available}}, event_ts=1760683295459}
 
 ### DB에서 대소문자 무시 검색
@@ -263,23 +264,93 @@ linkStyle 12 stroke:#ff6600,stroke-width:2px
 
 webhook 반응있는 정보
 ### 프로필 편집
-성 : new `ok`=> "first_name" : "new"
-이름 : Test `ok`=> "last_name" : "Test"
-표시 이름 : new Test `ok`=> "display_name" : "new Test"
-언어 : 한국어 `ok`=> "language":"en-US" -> "language" : "ko-KO"
+* 성 : new `ok`=> "first_name" : "new"
+* 이름 : Test `ok`=> "last_name" : "Test"
+* 표시 이름 : new Test `ok`=> "display_name" : "new Test"
+* 언어 : 한국어 `ok`=> "language":"en-US" -> "language" : "ko-KO"
 
 ### 사용자 편집
-라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임 라이센스는 별도 /users/{userId}/settings api 조회 필요.
-사용자 역할 : Test `ok` => "role_id" : "RkMP5mdHqTgGL2dOx_vOg3Q"
-부서 : deleted_edit `ok` => "dept"
-관리자 : ZOOM API `no` => "manager" : "test_zoom@arisys.co.kr"
-직함 : tester `no` => "job_title" : "tester",
-위치 : Seoul `no` => "location" : "Seoul"
-비용 센터 : center `no` => "cost_center" : "center"
-사용자 그룹 : 1 `no` => "group_ids" : [ "9QHk9NYERjadNIJf46XnfQ" ]
+* 라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임 라이센스는 별도 /users/{userId}/settings api 조회 필요.
+* 사용자 역할 : Test `ok` => "role_id" : "RkMP5mdHqTgGL2dOx_vOg3Q"
+* 부서 : deleted_edit `ok` => "dept"
+* 관리자 : ZOOM API `no` => "manager" : "test_zoom@arisys.co.kr"
+* 직함 : tester `no` => "job_title" : "tester",
+* 위치 : Seoul `no` => "location" : "Seoul"
+* 비용 센터 : center `no` => "cost_center" : "center"
+* 사용자 그룹 : 1 `no` => "group_ids" : [ "9QHk9NYERjadNIJf46XnfQ" ]
+
+### type 별 라이센스 차이
+* 1 : Zoom Meetings 기본 
+* 2 : Zoom Workplace 비즈니스
+* 4: 할당된 라이선스 없음
+
+## Webhook 이벤트 기반 사용자 정보 동기화 로직
+1. Zoom 서버가 사용자 관련 이벤트(user.created, user.updated, user.deleted, 등)를 Webhook 으로 전송한다.
+2. 서버는 Webhook 요청을 /zoom 엔드포인트에서 수신한 후, x-zm-signature, x-zm-request-timestamp 헤더로 정상 Webhook 여부를 검증한다. 
+   * 이벤트 종류에 따라 분기 처리:
+   * (1) user.created, user.updated, user.deactivated, user.activated 
+      이벤트 payload 에서 objectId(userId) 를 추출하여 readUserIdOrGetUserAndSave(userId) 호출: Zoom API GET /users/{userId} 로 최신 사용자 정보를 조회
+      조회된 사용자 정보를 로컬 DB(UserList) 에 업데이트 또는 Insert해 최종적으로 DB 의 사용자 상태값과 프로필 정보를 Zoom 기준으로 정확히 동기화한다.
+   * (2) user.deleted, user.disassociated
+       사용자 상세 조회 수행 안 함.
+       로컬 DB 에서 해당 userId 의 deleted = true 로 설정하며 논리적 삭제처리한다.
+       DB 업데이트 실패 시 WebSocket 으로 관리자에게 오류 알림을 전송한다.
+   * (3) user.presence_status_updated
+       payload 내 presence 상태 값만 DB 에 반영하여 status 필드만 최신화한다.
+3. Webhook으로 수신된 payload + 이벤트명을 queueType 으로 WebSocket 큐에 전달하여 UI 실시간 반영한다.
+4.  마지막으로 Webhook 응답으로 HTTP 200 OK를 즉시 반환한다.
+
+```mermaid
+sequenceDiagram
+    participant Zoom as Zoom Server
+    participant WebhookCtrl as /zoom Webhook Controller
+    participant DataService as DataService
+    participant ZoomApi as ZoomApiService
+    participant DB as Local DB
+    participant WebSocket as WebSocketService
+
+    Zoom ->> WebhookCtrl: POST /zoom (event + payload)
+    WebhookCtrl ->> WebhookCtrl: verifyWithZoomHeader()
+
+    WebhookCtrl ->> DataService: saveWebhook(event, payload, rawJson)
+
+    alt event = user.created / user.updated / user.activated / user.deactivated
+        WebhookCtrl ->> DataService: readUserIdOrGetUserAndSave(objectId)
+
+        DataService ->> DB: SELECT * FROM user WHERE userId = objectId
+        alt 사용자 존재함(DB Hit)
+            DB -->> DataService: return existing User
+        else 사용자 없음(DB Miss)
+            DataService ->> ZoomApi: GET /users/{userId}
+            ZoomApi ->> Zoom: API Request
+            Zoom ->> ZoomApi: User Details JSON
+            ZoomApi -->> DataService: return User JSON
+            DataService ->> DB: INSERT new user record
+            DB -->> DataService: return saved User
+        end
+
+    end
+
+    alt event = user.deleted / user.disassociated
+        WebhookCtrl ->> DataService: setUserIdDeleted(objectId)
+        DataService ->> DB: UPDATE user.deleted = true
+    end
+
+    alt event = user.presence_status_updated
+        WebhookCtrl ->> DataService: updateStatus(payload)
+        DataService ->> DB: UPDATE user.status
+    end
+
+    WebhookCtrl ->> WebSocket: enqueueEvent(payload + queueType)
+    WebhookCtrl -->> Zoom: 200 OK
 
 
-TIP : type 별 라이센스 차이
-1 : Zoom Meetings 기본
-2 : Zoom Workplace 비즈니스
-4: 할당된 라이선스 없음
+```
+
+## 사용자 요청 기반 사용자 CRUD 처리 로직
+Zoom API 호출 성공 후에는 반드시 GET /users/{userId} 또는 삭제 상태를 기준으로 DB 를 최종적으로 Zoom 상태와 일관되도록 보정한다.
+
+1. 사용자 상세 조회	GET /users/{userId}	Zoom 응답 내용을 화면에 표시. (필요 시 DB 동기화 수행 가능)
+2. 사용자 생성	POST /users	생성 성공 시 → GET /users/{userId} 재조회 → DB 에 신규 저장
+3. 사용자 수정	PATCH /users/{userId}	수정 성공 시 → GET /users/{userId} 재조회 → DB 정보 갱신
+4. 사용자 삭제	DELETE /users/{userId}	삭제 성공 시 → DB 에서 deleted = true 로 표시 (소프트 삭제)

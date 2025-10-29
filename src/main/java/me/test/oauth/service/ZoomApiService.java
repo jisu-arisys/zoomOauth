@@ -8,6 +8,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import me.test.oauth.common.JsonUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.*;
@@ -65,6 +66,8 @@ public class ZoomApiService {
 
     //    post 요청용
     private HttpHeaders postHeaders = new HttpHeaders();
+
+    private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
 
     //    생성자 실행시 서버 권한 생성
     @PostConstruct
@@ -351,14 +354,15 @@ public class ZoomApiService {
     }
 
     /** 토근을 가지고 post 요청 API 호출 JSON 반환 **/
-    public String postApi(String url, Map<String, Object> bodyMap) {
+    @Deprecated
+    public ResponseEntity<String> putApi(String url, Map<String, Object> bodyMap) {
         log.info("[test]postApi : {}", bodyMap);
         String profix = "fail";
         String postUrl = zoomApiBaseUrl + url;
         // 요청 가능여부 검증
         if(postHeaders == null) {
             System.out.printf("tokenHeaders is null. fail to get api %s\n", postUrl);
-            return profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl;
+            return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl);
         }
 
         try {
@@ -372,18 +376,117 @@ public class ZoomApiService {
                     String.class
             );
 
-            if(response.getStatusCode() == HttpStatus.NO_CONTENT){
-                return "success";
-            } else if (response.hasBody()) {
-                return response.getBody(); // 실제 JSON 응답이 있으면 전달
-            } else {
-                return profix;
-            }
-
+            return response;
         } catch (Exception e) {
-            return profix + e.toString();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(profix + e.toString());
         }
     }
 
+    /** 토근을 가지고 post 요청 API 호출 JSON 반환 **/
+    @Deprecated
+    public ResponseEntity<String> postApi(String url, Map<String, Object> bodyMap) {
+        log.info("[test]postApi : {}", bodyMap);
+        String profix = "fail";
+        String postUrl = zoomApiBaseUrl + url;
+        // 요청 가능여부 검증
+        if(postHeaders == null) {
+            System.out.printf("tokenHeaders is null. fail to get api %s\n", postUrl);
+            return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ postUrl);
+        }
+
+        try {
+            HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(bodyMap,postHeaders);
+            log.info("[test]postApi : {}", tokenRequestEntity);
+            // REST API 호출
+            ResponseEntity<String> response = restTemplate.exchange(
+                    postUrl,
+                    HttpMethod.POST,
+                    tokenRequestEntity,
+                    String.class
+            );
+
+            return response;
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(profix + e.toString());
+        }
+    }
+
+    /** 토근을 가지고 get 요청 API 호출 JSON 반환 **/
+    /** 전역변수 tokenRequestEntity 를 사용하여 GET 요청을 보냅니다.
+     *
+     * <br> 요청헤더에 엑세스 토큰이 필요합니다.
+     * <br> -H "Authorization: Bearer USER_ACCESS_TOKEN"
+     * <br> -H "Content-Type: application/x-www-form-urlencoded"
+     * **/
+    @Deprecated
+    public ResponseEntity<String> deleteApi(String getUrl) {
+        String profix = "fail";
+        // 요청 가능여부 검증
+        if(tokenHeaders == null) {
+            System.out.printf("tokenHeaders is null. fail to get api %s\n", zoomApiBaseUrl + getUrl);
+            //return profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl;
+            return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(profix + "tokenHeaders is null. fail to get api %s\n"+ zoomApiBaseUrl + getUrl);
+        }
+
+        try {
+
+            HttpEntity<Map<String, Object>> tokenRequestEntity = new HttpEntity<>(tokenHeaders);
+            // REST API 호출
+            ResponseEntity<String> response = restTemplate.exchange(
+                    zoomApiBaseUrl + getUrl,
+                    HttpMethod.DELETE,
+                    tokenRequestEntity,
+                    String.class
+            );
+            return response;
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(profix + e.toString());
+        }
+    }
+
+    /** 공통 API 호출 함수 ResponseEntity<String> 반환 **/
+    public ResponseEntity<String> api(String url, HttpMethod httpMethod, Map<String, Object> bodyMap) {
+        HttpEntity<Map<String, Object>> tokenRequestEntity;
+        String errorMessage = "tokenHeaders is null. fail to api" + httpMethod.toString() + zoomApiBaseUrl + url;
+
+        try {
+            if(httpMethod.equals(HttpMethod.GET) || httpMethod.equals(HttpMethod.DELETE)) {
+                if(tokenHeaders == null) {
+                    log.warn(errorMessage);
+                    return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(errorMessage);
+                }
+                tokenRequestEntity = new HttpEntity<>(tokenHeaders);
+            }else {
+                if(postHeaders == null) {
+                    log.warn(errorMessage);
+                    return ResponseEntity.status(HttpStatus.NETWORK_AUTHENTICATION_REQUIRED).body(errorMessage);
+                }
+                tokenRequestEntity = new HttpEntity<>(bodyMap, postHeaders);
+            }
+
+            // REST API 호출
+            ResponseEntity<String> response = restTemplate.exchange(
+                    zoomApiBaseUrl + url,
+                    httpMethod,
+                    tokenRequestEntity,
+                    String.class
+            );
+            return response;
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.toString());
+        }
+    }
+
+
+
+    public String pasingJson(String body) throws JsonProcessingException {
+        // 응답 바디 JSON 형로 출력 : 4개의 공백으로 들여쓰기
+        Object jsonObject = objectMapper.readValue(body, Object.class);
+        String prettyJsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
+        return prettyJsonString;
+    }
 
 }
