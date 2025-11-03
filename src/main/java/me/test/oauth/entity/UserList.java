@@ -1,5 +1,6 @@
 package me.test.oauth.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.persistence.*;
@@ -34,7 +35,9 @@ public class UserList {
     @Column(length = 100, unique = true)
     private String email;
 
-    private Integer type;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "type", referencedColumnName = "type")
+    private ZoomLicense zoomLicense;
 
     @Column(length = 100)
     private String pmi;
@@ -121,5 +124,23 @@ public class UserList {
 //            name = "license_info_list",
 //            joinColumns = @JoinColumn(name = "id"))   // 소속 엔티티 PK 값
 //    private List<ZoomLicense> zoomLicense = new ArrayList<>();
+
+    /** JSON 입력 시 "type" 값을 받아서 zoomLicense 셋팅 JSON 출력시 기존 type 필드 유지하면서 추가로 zoom_license 필드에 출력용 데이터 포함
+     * @return   "zoom_license": {
+     "type": 1,
+     "name": "Basic",
+     "display_name": "Zoom Meetings 기본"
+     }
+     */
+    @JsonProperty("type")
+    public void setType(Integer type) {
+        if (type != null) {
+            this.zoomLicense = ZoomLicense.builder().type(type).build();
+        }
+    }
+    @JsonProperty("type")
+    public Integer getType() {
+        return this.zoomLicense != null ? this.zoomLicense.getType() : null;
+    }
 
 }
