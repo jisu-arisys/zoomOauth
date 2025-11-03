@@ -1,16 +1,14 @@
 package me.test.oauth.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+/** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함.**/
 @Entity
 @Table(name="userlist")
 @Getter
@@ -38,6 +36,9 @@ public class UserList {
 
     private Integer type;
 
+    @Column(length = 100)
+    private String pmi;
+
     @Column(length = 50)
     private String timezone;
 
@@ -55,6 +56,9 @@ public class UserList {
     @Column(name = "last_client_version", length = 50)
     private String lastClientVersion;
 
+    @Column(length = 500)
+    private String pic_url;
+
     @Column(length = 10)
     private String language;
 
@@ -67,6 +71,55 @@ public class UserList {
     @Column(name = "user_created_at")
     private LocalDateTime userCreatedAt;
 
+    /** 논리삭제를 위해 추가한 필드 */
     @Column(name = "deleted", nullable = false)
     private boolean deleted = false;
+
+    /** 단독 조회시 확인 가능한 필드 */
+    @Column(name = "role_name", length = 100)
+    private String roleName;
+    @Column(name = "use_pmi")
+    private boolean usePmi;
+    @Column(name = "personal_meeting_url", length = 500)
+    private String personalMeetingUrl;
+    @Column(name = "cms_user_id", length = 50)
+    private String cmsUserId;
+    @Column(name = "jid", length = 256)
+    private String jid;
+    @Column(name = "group_ids")
+    private List<String> groupIds;
+    @Column(name = "im_group_ids", length = 256)
+    private List<String> ImGroupIds;
+    @Column(name = "account_id", length = 100)
+    private String accountId;
+    @Column(name = "phone_numbers")
+    private List<String> phoneNumbers;
+    @Column(name = "job_title", length = 128)
+    private String jobTitle;
+    @Column(name = "cost_center", length = 128)
+    private String costCenter;
+    @Column(name = "company", length = 128)
+    private String company;
+    @Column(name = "location", length = 100)
+    private String location;
+    @Column(name = "login_types", length = 100)
+    private List<String> loginTypes;
+    @Column(name = "account_number", length = 100)
+    private String accountNumber;
+    @Column(length = 100)
+    private String cluster;
+
+    /** 앞으로 사용불가 필드 */
+    @Column(name = "phone_country", length = 100)
+    private String phoneCountry;
+    @Column(name = "phone_number", length = 100)
+    private String phoneNumber;
+
+    /** 조회 불가능 필드 */
+//    @ElementCollection(fetch = FetchType.EAGER)
+//    @CollectionTable(
+//            name = "license_info_list",
+//            joinColumns = @JoinColumn(name = "id"))   // 소속 엔티티 PK 값
+//    private List<ZoomLicense> zoomLicense = new ArrayList<>();
+
 }

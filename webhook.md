@@ -128,8 +128,12 @@ detail: Cannot invoke "me.test.oauth.entity.UserList.setStatus(String)" because 
 zoom api 요청으로 사용자를 삭제처리 시 웹훅 발생 : 기존 계정정보는 유지하돼, 조직의 사용자 목록에서 제거됨.
 * zoomReceive user.created : {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=Wn7ZZ5glRnWrnByQ2_jkuQ, first_name=new, last_name=Test, display_name=new Test, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761553396588}
 zoom api 요청으로 사용자 등록처리 시 웹훅 발생 : 일치하는 이메일의 zoom 계정이 존재하는 경우, 새로 기입한 정보는 무시되고 기존 계정정보가 유지됨. 보류중 목록에 추가됨.
-보류중인 사용자는 삭제 불가 1001 : User does not exist: $userId.
-
+* zoomReceive user.invitation_accepted : {event=user.created, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=test_zoom@arisys.co.kr, operator_id=lY4x7CVoR8S6L4FE45TNHg, creation_type=create, object={id=Wn7ZZ5glRnWrnByQ2_jkuQ, first_name=new, last_name=Test, display_name=new Test, email=ashasg@knou.ac.kr, type=1}}, event_ts=1761553396588}
+zoom api 요청 이후 이미 존재하는 사용자가 이메일로 수락 시 웹훅 발생.
+* 보류중인 사용자는 삭제 불가 1001 : User does not exist: $userId.
+* 사용자 정보수정 api 보내도 변경사항 없으면 웹훅 발생하지 않음.
+* zoomReceive user.updated : {event=user.updated, payload={account_id=RuKYKI0gRmioLXZxGXzq2Q, operator=jisu_um@arisys.co.kr, operator_id=t2bS3bJKRamtTrbWCKMVtA, operation=sign_out_from_all_devices, object={id=t2bS3bJKRamtTrbWCKMVtA}}, event_ts=1761782806919}
+* 사용자가 전체 디바이스 세션 로그아웃 클릭시에 발생하는 웹훅.
 
 ### webhookEvent 엔티티 생성(2025.10.17)
 반복되는 구조의 웹훅을 파싱하기 간편하게 하면서, 실시간으로 DB 에 이벤트로그를 저장하기 위한 중첩된 엔티티 생성.
@@ -271,7 +275,7 @@ webhook 반응있는 정보
 * 회사 : 아리시스 `ok`=> "company" : "Example, Inc."
 
 ### 사용자 편집
-* 라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임 라이센스는 별도 /users/{userId}/settings api 조회 필요.
+* 라이선스 및 추가 기능 : Zoom Meetings 기본 제거 ->  "type" : 4, "settings":{"feature":{"meeting_capacity":0}}} : 300 에서 0으로 값변경됨. user API 정보조회에는 type 만 보임. 라이센스는 별도 /users/{userId}/settings api 조회 필요.
 * 사용자 역할 : Test `ok` => "role_id" : "RkMP5mdHqTgGL2dOx_vOg3Q"
 * 부서 : deleted_edit `ok` => "dept"
 * 관리자 : ZOOM API `no` => "manager" : "test_zoom@arisys.co.kr"
@@ -285,21 +289,26 @@ webhook 반응있는 정보
 * 2 : Zoom Workplace 비즈니스
 * 4: 할당된 라이선스 없음
 
+상세정보 license_info_list 는 조회 불가. 
+api 가이드에 나오는 3가지 해당필드 미포함. 1가지는 권한 오류로 조회 불가(토큰에 권한이 존재하지만 404 오류 발생함)
+`/users/{userId}/settings`, `/users`, `/users/{userId}`, `/accounts/{accountId}/users/{userId}`
+
+
 ## Webhook 이벤트 기반 사용자 정보 동기화 로직
 1. Zoom 서버가 사용자 관련 이벤트(user.created, user.updated, user.deleted, 등)를 Webhook 으로 전송한다.
 2. 서버는 Webhook 요청을 /zoom 엔드포인트에서 수신한 후, x-zm-signature, x-zm-request-timestamp 헤더로 정상 Webhook 여부를 검증한다. 
-   * 이벤트 종류에 따라 분기 처리:
-   * (1) user.created, user.updated, user.deactivated, user.activated 
-      이벤트 payload 에서 objectId(userId) 를 추출하여 readUserIdOrGetUserAndSave(userId) 호출: Zoom API GET /users/{userId} 로 최신 사용자 정보를 조회
+3. 이벤트 종류에 따라 분기 처리: 이벤트 payload 에서 objectId(userId) 를 추출
+   * user.created, user.updated, user.deactivated, user.activated :
+      readUserIdOrGetUserAndSave(userId) 호출해 DB 또는 Zoom API GET /users/{userId} 로 최신 사용자 정보를 조회
       조회된 사용자 정보를 로컬 DB(UserList) 에 업데이트 또는 Insert해 최종적으로 DB 의 사용자 상태값과 프로필 정보를 Zoom 기준으로 정확히 동기화한다.
-   * (2) user.deleted, user.disassociated
+   * user.deleted, user.disassociated :
        사용자 상세 조회 수행 안 함.
        로컬 DB 에서 해당 userId 의 deleted = true 로 설정하며 논리적 삭제처리한다.
        DB 업데이트 실패 시 WebSocket 으로 관리자에게 오류 알림을 전송한다.
-   * (3) user.presence_status_updated
-       payload 내 presence 상태 값만 DB 에 반영하여 status 필드만 최신화한다.
-3. Webhook으로 수신된 payload + 이벤트명을 queueType 으로 WebSocket 큐에 전달하여 UI 실시간 반영한다.
-4.  마지막으로 Webhook 응답으로 HTTP 200 OK를 즉시 반환한다.
+   * user.presence_status_updated :
+       payload 내 현재상태 값만 DB 에 반영하여 status 필드만 최신화한다.
+4. Webhook으로 수신된 payload + 이벤트명을 queueType 으로 WebSocket 큐에 전달하여 UI 실시간 반영한다.
+5. 마지막으로 Webhook 응답으로 HTTP 200 OK를 즉시 반환한다.
 
 ```mermaid
 sequenceDiagram
