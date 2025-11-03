@@ -71,6 +71,7 @@ public class WebhookController {
                 case "user.updated":
                 case "user.deactivated":
                 case "user.activated":
+                case "user.invitation_accepted":
                     user = dataService.readUserIdOrGetUserAndSave(objectId);
                     break;
                 case "user.deleted":
