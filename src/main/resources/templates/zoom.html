@@ -100,7 +100,20 @@
                         <input type="text" name="callLogId" id="callLogId" style="width: 200px" value="">
                     </p>
 
+                    <p>
+                        <label for="action">custom Action:</label>
+                        <input type="text" name="action" id="action" style="width: 200px" value="">
+                    </p>
+
                     <ul>
+                        <li>
+                            <p>
+                                <span> 커스텀 GET 조회, custom Action 값에 api url 입력 </span><br>
+                                <button type="button" onclick="submitForm('/zoom/custom_action', 'action')" th:disabled="${isSuccess == null or !isSuccess}">
+                                    <span>customAction</span>
+                                </button>
+                            </p>
+                        </li>
                         <li>
                             <p>
                                 <span> 개인 조회는 userId 값 입력, 목록조회에는 userId 불필요 </span><br>

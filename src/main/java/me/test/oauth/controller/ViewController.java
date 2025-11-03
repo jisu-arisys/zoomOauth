@@ -123,4 +123,15 @@ public class ViewController {
         model.addAttribute("log", json);
         return "zoom";
     }
+
+    /** 콜 하나에 대한 자세한 정보를 조회합니다. **/
+    @GetMapping("/zoom/custom_action")
+    public String getCustomApi(@RequestParam String action, Model model) {
+        String callUrl = action;
+        log.info(callUrl);
+        String json = zoomApiService.getApi(callUrl);
+        zoomApiService.setModelObject(model);
+        model.addAttribute("log", json);
+        return "zoom";
+    }
 }
