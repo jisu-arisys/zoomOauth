@@ -162,7 +162,7 @@ public class DataService {
                 result.add(apiUser);
             }
         }
-        return userListRepository.saveAll(db);
+        return userListRepository.saveAll(result);
     }
 
     //// DB 단순조회
