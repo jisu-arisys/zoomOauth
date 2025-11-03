@@ -27,13 +27,13 @@ public class ViewController {
     }
 
     /** 사용자 기본화면 **/
-    @GetMapping("/list")
+    @GetMapping("/vue/list")
     public String list() {
         return "users";
     }
 
     /** zoom 기본화면 **/
-    @GetMapping("/zoom")
+    @GetMapping("/vue/zoom")
     public String zoom(Model model) {
         zoomApiService.setModelObject(model);
         return "zoom";

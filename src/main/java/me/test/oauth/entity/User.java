@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Set;
-
 @Entity
-@Table(name="users")
+@Table(name="employee")
 @Getter
 @Setter
 @Builder
@@ -17,9 +15,9 @@ public class User {
 
     @JsonIgnore
     @Id
-    @Column(name = "user_id")
+    @Column(name = "emp_no")
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동증가되는 PK
-    private Long userId;
+    private Long empNo;
 
     @Column(name = "username", length = 50, unique = true)
     private String username;
@@ -28,20 +26,21 @@ public class User {
     @Column(name = "password", length = 100)
     private String password;
 
-    @Column(name = "email", length = 50)
+    @Column(name = "email", length = 100)
     private String email;
+
+    @Column(name = "dept_code", length = 100)
+    private String deptCode;
+
+    @Column(name = "position", length = 100)
+    private String position;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_type", referencedColumnName = "authority_name")
+    private Authority userType;
 
     @JsonIgnore
     @Column(name = "activated")
-    private String activated;
-
-
-    //권한에 대한 관계설정 : user:authorities 다대다 관계를 위해서 -> user:user_authority:authorities 별도의 테이블을 만들어 일대다, 다대일로 정의함
-    @ManyToMany
-    @JoinTable(name = "user_authority", // 조인 테이블명
-                joinColumns = {@JoinColumn(name = "user_id", referencedColumnName = "user_id")}, // 외래키
-                inverseJoinColumns = {@JoinColumn(name = "authority_name", referencedColumnName = "authority_name")}) // 반대 엔티티의 외래키
-    private Set<Authority> authorities;
-
+    private Integer activated;
 
 }

@@ -1,12 +1,186 @@
 <!DOCTYPE html>
-<html lang="kr">
+<html lang="kr" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <title>Main</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+    .menuBox {
+        width: 250px;
+        height: 600px;
+        background-color: #ffffff;
+        margin: 0 10px;
+        gap: 10px;
+    }
+    .loginBox {
+        width: 600px;
+        height: 600px;
+        background-color: #b2ca94;
+        margin: 0 10px;
+    }
+    .innerBox {
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        width: 80%;
+        margin: auto;
+    }
+    .btn {
+        background-color: #085117;
+        color: #fff;
+        border: none;
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        width: 200px;
+        height: 40px;
+        margin: 10px;
+    }
+
+    .input {
+        width: 70%;
+        height: 15px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: none;
+        border-radius: 5px;
+        background-color: #ffffff;
+        color: #085117;
+        font-size: 16px;
+    }
+
+    .head {
+        text-align: center;
+        color: white;
+        font-weight: bolder;
+        padding: 10px;
+    }
+
+    .label {
+        text-align: center;
+        width: 50px;
+        display: inline-block;
+    }
+</style>
 </head>
 <body>
-    <h1>index.html</h1>
-        <h3> <a href="/zoom" style="text-decoration: none"> Zoom api test</a></h3>
-        <h3> <a href="/list" style="text-decoration: none"> Zoom webhook test</a></h3>
+    <div class="content" style="display: flex; margin: 20px 0px;">
+        <div class="menuBox">
+            <h1 class="head" style="color:#b2ca94;">Menu</h1>
+            <button class="btn head" style="background-color: #b2ca94;" onclick="paging('/vue/zoom')"> Zoom api test </button>
+            <button class="btn head" style="background-color: #b2ca94;"onclick="paging('/vue/list')"> Zoom webhook test </button>
+        </div>
+        <div class="div" style="border: 2px solid #085117; opacity: 0.5"></div>
+        <div class="loginBox" id="loginBox">
+            <h1 class="head">Login Page</h1>
+            <div class="innerBox">
+                <label class="head label" for="username"> id</label>
+                <input type="text" name="username" placeholder="username" class="input" id="username"/>
+                <label class="head label" for="password">pw</label>
+                <input type="password" name="password" placeholder="password" class="input" id="password"/>
+                <div style="text-align: center;">
+                    <button type="click" class="btn head" id="loginBtn">Login</button>
+                </div>
+            </div>
+        </div>
+        <div class="loginBox" id="userBox" style="display: none">
+            <h1 class="head">User data</h1>
+            <div class="innerBox">
+                <label class="head label" for="name" > name </label>
+                <input type="text" name="name" placeholder="name" class="input" id="name"/>
+                <label class="head label" for="email" >email </label>
+                <input type="text" name="email" placeholder="email" class="input" id="email"/>
+                <label class="head label" for="position" >position</label>
+                <input type="text" name="position" placeholder="position" class="input" id="position"/>
+                <div style="text-align: center;">
+                    <button type="click" class="btn head" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+        </div>
+        <div id="pageBox" style="display: none; padding-left: 10px">
+
+        </div>
+    </div>
+<script>
+    const loginBox = document.getElementById("loginBox");
+    const userBox = document.getElementById("userBox");
+    const pageBox = document.getElementById("pageBox");
+
+    $(document).ready(function () {
+        const user = localStorage.getItem("user");
+        if (user) {
+            const user = JSON.parse(localStorage.getItem("user"));
+            getUserData(user);
+        }
+    });
+
+    function logout(){
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
+        loginBox.style.display = "block";
+        userBox.style.display = "none";
+    }
+    $("#logoutBtn").on("click", function (e) {
+        logout();
+    });
+
+    $("#loginBtn").on("click", function (e) {
+        console.log( "loginForm submit")
+        const username = $("#username").val();
+        const password = $("#password").val();
+
+        $.ajax({
+            url: "/auth/login",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({username, password}),
+
+            success: function (response, status, xhr) {
+                if (response.token) {
+                    localStorage.setItem("access_token", response.token);
+                    alert("로그인 성공");
+                }
+                if (response.user) {
+                    localStorage.setItem("user", JSON.stringify(response.user));
+                    getUserData(response.user);
+                }
+            },
+            error: function(xhr) {
+                alert("로그인 실패: " + xhr.status);
+            }
+        });
+    });
+
+    function getUserData(user) {
+        loginBox.style.display = "none";
+        userBox.style.display = "block";
+        const email = user.email;
+        $("#email").val(email);
+        const position = user.position;
+        $("#position").val(position);
+        const name = user.username;
+        $("#name").val(name);
+    }
+
+    // 모든 AJAX 요청 전 헤더를 추가하도록 설정
+    $.ajaxSetup({
+        beforeSend: function (xhr) {
+            const token = localStorage.getItem("access_token");
+            xhr.setRequestHeader("Authorization", "Bearer " + token);
+        }
+    });
+
+    function paging(url) {
+        if(localStorage.hasOwnProperty("access_token")){
+            document.location.href = url;
+        }else {
+            if(confirm("로그인을 다시 시도해주세요.")){
+                logout();
+                document.location.href = "/";
+            };
+        }
+    }
+
+</script>
 </body>
 </html>

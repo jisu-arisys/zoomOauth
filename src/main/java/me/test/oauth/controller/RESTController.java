@@ -3,6 +3,7 @@ package me.test.oauth.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.test.oauth.dto.UserDetailDto;
 import me.test.oauth.entity.UserList;
 import me.test.oauth.service.DataService;
 import me.test.oauth.service.ZoomApiService;
@@ -117,6 +118,13 @@ public class RESTController {
         log.info("[test]updateUserDetail : {}", userId);
         ResponseEntity<String> response = zoomApiService.api("/users/" + userId, HttpMethod.PATCH, bodyMap);
         return response;
+    }
+
+
+    @GetMapping("/vue/user/list")
+    public ResponseEntity<List<UserDetailDto>> getUserListVue() {
+        List<UserDetailDto> list = dataService.readUserListAndUser();
+        return ResponseEntity.ok(list);
     }
 
 }

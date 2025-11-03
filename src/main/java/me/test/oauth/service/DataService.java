@@ -6,9 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
+import me.test.oauth.dto.UserDetailDto;
 import me.test.oauth.entity.UserList;
 import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.repository.UserListRepository;
+import me.test.oauth.repository.UserRepository;
 import me.test.oauth.repository.WebhookEventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static me.test.oauth.dto.UserDetailDto.getAllUsers;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -26,6 +30,8 @@ public class DataService {
 
     @Autowired
     private ZoomApiService zoomApiService;
+    @Autowired
+    private final UserRepository userRepository;
     @Autowired
     private final UserListRepository userListRepository;
     @Autowired
@@ -182,6 +188,13 @@ public class DataService {
     }
 
     //// DB 우선조회
+    /** userlist & users 통합 dto 반환 **/
+    public List<UserDetailDto> readUserListAndUser(){
+        List<Object[]> result = userRepository.findAllWithUserList();
+        List<UserDetailDto> findAllWithUserList = getAllUsers(result);
+        return findAllWithUserList;
+    }
+
     /** 전체 사용자 목록을 불러옴 **/
     public List<UserList> readUserListOrGetUserListAndSave() throws JsonProcessingException {
         List<UserList> user = readAllUserNotDeleted();

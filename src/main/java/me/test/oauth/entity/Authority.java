@@ -1,11 +1,9 @@
 package me.test.oauth.entity;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
 
 @Entity
 @Table(name = "authority")
@@ -14,11 +12,14 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Authority {
-
+public class Authority implements GrantedAuthority {
 
     @Id
     @Column(name = "authority_name", length = 50)
-    private String authority_name;
+    private String authorityName;
 
+    @Override
+    public String getAuthority() {
+        return "ROLE_"+authorityName;
+    }
 }

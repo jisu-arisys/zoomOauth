@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함.**/
@@ -37,7 +38,7 @@ public class UserList {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "type", referencedColumnName = "type")
-    private ZoomLicense zoomLicense;
+    private ZoomLicense licenseInfoList;
 
     @Column(length = 100)
     private String pmi;
@@ -95,8 +96,6 @@ public class UserList {
     private List<String> ImGroupIds;
     @Column(name = "account_id", length = 100)
     private String accountId;
-    @Column(name = "phone_numbers")
-    private List<String> phoneNumbers;
     @Column(name = "job_title", length = 128)
     private String jobTitle;
     @Column(name = "cost_center", length = 128)
@@ -111,22 +110,53 @@ public class UserList {
     private String accountNumber;
     @Column(length = 100)
     private String cluster;
-
-    /** 앞으로 사용불가 필드 */
+    /** 앞으로 사용불가 필드, 조회용 필드 */
     @Column(name = "phone_country", length = 100)
     private String phoneCountry;
     @Column(name = "phone_number", length = 100)
     private String phoneNumber;
+    /** 수정용 필드 : DB 저장안함. JSON 출력시 포함 */
+    @Transient
+    @JsonProperty("phone_numbers")
+    public List<PhoneNumber> getPhoneNumbers() {
+        if (phoneCountry == null || phoneNumber == null) {
+            return new ArrayList<>();
+        }
+        String code = "";
+        String number = this.phoneNumber;
+        String label = "Mobile"; // Mobile | Office | Home | Fax
+        // "+82 1099991111" 형태라면 국가 코드 분리
+        if (number.startsWith("+")) {
+            int firstSpace = number.indexOf(" ");
+            if (firstSpace > 0) {
+                code = number.substring(0, firstSpace);            // +82
+                number = number.substring(firstSpace + 1).trim();   // 1099991111
+            }
+        }
+        // phone_country 가 null 이면 guess 로 넘어감
+        String country = this.phoneCountry != null ? this.phoneCountry : convertToDialCode(code);
+        List<PhoneNumber> list = new ArrayList<>();
+        list.add(new PhoneNumber(code, country, label, number));
+        return list;
+    }
+
+    private String convertToDialCode(String countryCode) {
+        return switch (countryCode.toUpperCase()) {
+            case "US" -> "+1";
+            case "KR" -> "+82";
+            default -> "";
+        };
+    }
 
     /** 조회 불가능 필드 */
 //    @ElementCollection(fetch = FetchType.EAGER)
 //    @CollectionTable(
 //            name = "license_info_list",
 //            joinColumns = @JoinColumn(name = "id"))   // 소속 엔티티 PK 값
-//    private List<ZoomLicense> zoomLicense = new ArrayList<>();
+//    private List<ZoomLicense> licenseInfoList = new ArrayList<>();
 
     /** JSON 입력 시 "type" 값을 받아서 zoomLicense 셋팅 JSON 출력시 기존 type 필드 유지하면서 추가로 zoom_license 필드에 출력용 데이터 포함
-     * @return   "zoom_license": {
+     * @return   "license_info_list": {
      "type": 1,
      "name": "Basic",
      "display_name": "Zoom Meetings 기본"
@@ -135,12 +165,12 @@ public class UserList {
     @JsonProperty("type")
     public void setType(Integer type) {
         if (type != null) {
-            this.zoomLicense = ZoomLicense.builder().type(type).build();
+            this.licenseInfoList = ZoomLicense.builder().type(type).build();
         }
     }
     @JsonProperty("type")
     public Integer getType() {
-        return this.zoomLicense != null ? this.zoomLicense.getType() : null;
+        return this.licenseInfoList != null ? this.licenseInfoList.getType() : null;
     }
 
 }

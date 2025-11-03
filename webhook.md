@@ -293,6 +293,8 @@ webhook 반응있는 정보
 api 가이드에 나오는 3가지 해당필드 미포함. 1가지는 권한 오류로 조회 불가(토큰에 권한이 존재하지만 404 오류 발생함)
 `/users/{userId}/settings`, `/users`, `/users/{userId}`, `/accounts/{accountId}/users/{userId}`
 
+참고) 2025.9.15 변경된 api 목록 https://developers.zoom.us/changelog/users/september-15-2025/#enhancements
+참고) 2025.10.15 license_info_list 조회방법 확인중  https://devforum.zoom.us/t/server-to-server-oauth-list-users-or-get-user-does-not-return-license-info-in-response/138055?u=api_dev
 
 ## Webhook 이벤트 기반 사용자 정보 동기화 로직
 1. Zoom 서버가 사용자 관련 이벤트(user.created, user.updated, user.deleted, 등)를 Webhook 으로 전송한다.
