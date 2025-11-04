@@ -27,8 +27,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Slf4j
 @Configuration
 public class SecurityConfig {
@@ -88,7 +86,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/webhook/zoom/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/vue/**").permitAll()
+                        .requestMatchers("/vue/**").authenticated()
                         .requestMatchers("/zoom/**").authenticated()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()

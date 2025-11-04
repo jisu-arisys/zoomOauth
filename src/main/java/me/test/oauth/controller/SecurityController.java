@@ -2,6 +2,7 @@ package me.test.oauth.controller;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import me.test.oauth.entity.CustomUserDetails;
 import me.test.oauth.entity.User;
 import me.test.oauth.jwt.JwtUtils;
 import me.test.oauth.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -93,5 +95,22 @@ public class SecurityController {
             response.put("user", foundUser.get());
             return ResponseEntity.ok(response);
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map> me(Authentication authentication) {
+        log.debug("[test] /auth/me");
+        if (authentication == null) {
+            return ResponseEntity.ok(Map.of("loggedIn", false));
+        }
+        org.springframework.security.core.userdetails.User user = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+        String username = user.getUsername();
+        User currentUser = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        User userDto = new CustomUserDetails(currentUser).getUserForJWT();
+
+        return ResponseEntity.ok(Map.of(
+                "loggedIn", true,
+                "user", userDto
+        ));
     }
 }

@@ -9,6 +9,7 @@ import me.test.oauth.entity.CustomUserDetails;
 import me.test.oauth.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -59,6 +60,18 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         result.put("token", token);
         result.put("user", user);
         response.setContentType("application/json;charset=UTF-8");
+
+
+        ResponseCookie cookie = ResponseCookie.from("token", token)
+                .httpOnly(true)
+                .secure(false) // https이면 true
+                .path("/")
+                .sameSite("Strict")
+                .maxAge(60 * 60)
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+
         new ObjectMapper().writeValue(response.getWriter(), result); //내부적으로 writer.flush() 를 이미 호출하는 함수
 //        response.getWriter().flush();
     }

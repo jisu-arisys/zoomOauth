@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     FROM User u
     JOIN UserList ul ON u.email = ul.email """)
     List<Object[]> findAllWithUserList();
+
+    Optional<User> findByUsername(String username);
 }

@@ -1,5 +1,6 @@
 package me.test.oauth.service;
 
+import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.entity.CustomUserDetails;
 import me.test.oauth.entity.User;
 import me.test.oauth.repository.UserRepository;
@@ -14,10 +15,9 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 
+@Slf4j
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
-
 
     /** 불변성 유지를 위해 생성자로 직접 주입함. **/
     private final UserRepository userRepository;
@@ -35,7 +35,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException(username);
         }
         User user = foundUser.get();
-        logger.info("CustomUserDetailsService : {}", user.getUsername());
+        log.info("CustomUserDetailsService : {}", user.getUsername());
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
@@ -45,9 +45,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username)
-                .map(CustomUserDetails::new)
+        User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
+
+        return new CustomUserDetails(user);
     }
 
 }
