@@ -190,7 +190,7 @@
             const status = document.getElementById('status').value;
             const jsonBody = JSON.stringify({ "status": status });
 
-            const url = '/api/users/'+ userId +'/presence_status';
+            const url = '/api/zoomUser/update/presence_status/'+ userId;
             $.ajax({
                 url: url,
                 method: 'POST',
@@ -272,7 +272,7 @@
     function getList(force = false) {
         // 초기 사용자 데이터는 REST API로 가져오기
         $.ajax({
-            url: '/api/userlist' + (force ? '?force=true' : ''),
+            url: '/api/zoomUser/reload' + (force ? '?force=true' : ''),
             method: 'GET',
             dataType: 'json', // 서버에서 반환하는 List<UserList>를 JSON으로 처리
             success: function (data, status, xhr) {
@@ -288,7 +288,7 @@
     }
 
     function getUser(userId, force = true) {
-        const url = force ? '/api/user/reload/'+userId+'?force=true' : '/api/userlist';
+        const url = force ? '/api/zoomUser/reload/'+userId+'?force=true' : '/api/userlist';
         // 초기 사용자 데이터는 REST API로 가져오기
         $.ajax({
             url: url,
