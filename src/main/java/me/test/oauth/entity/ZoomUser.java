@@ -9,17 +9,19 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 /** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함.**/
 @Entity
-@Table(name="userlist")
+@Table(name="zoomUser")
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class UserList {
+public class ZoomUser {
 
     @Id
     private String id;
@@ -173,4 +175,18 @@ public class UserList {
         return this.licenseInfoList != null ? this.licenseInfoList.getType() : null;
     }
 
+    // ZoomUser 에 적용할 속성맵
+    public static final Map<String, BiConsumer<ZoomUser, String>> zoomUserMapping = Map.of(
+            "firstName", ZoomUser::setFirstName,
+            "lastName", ZoomUser::setLastName,
+            "displayName", ZoomUser::setDisplayName,
+            "phoneNumber", ZoomUser::setPhoneNumber,
+            "licenseType", ZoomUser::setLicenseInfoList,
+            "position", ZoomUser::setJobTitle
+    );
+
+    private void setLicenseInfoList(String type) {
+        ZoomLicense licenseInfoList = new ZoomLicense(type);
+        this.licenseInfoList = licenseInfoList;
+    }
 }

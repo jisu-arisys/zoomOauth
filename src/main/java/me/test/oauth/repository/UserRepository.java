@@ -15,8 +15,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("""
     SELECT u, ul
     FROM User u
-    JOIN UserList ul ON u.email = ul.email """)
-    List<Object[]> findAllWithUserList();
+    JOIN ZoomUser ul ON u.email = ul.email """)
+    List<Object[]> findAllUserWithZoomUser();
 
     Optional<User> findByUsername(String username);
 }

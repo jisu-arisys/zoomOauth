@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.common.SHA256Cipher;
-import me.test.oauth.entity.UserList;
+import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.service.DataService;
 import me.test.oauth.service.WebSocketService;
@@ -29,11 +29,7 @@ public class WebhookController {
 
     /** Node.js 기준: 키 순서 유지, 들여쓰기 제거, null 포함하여 JSON 직력화 하기위함.**/
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
-
-    @Autowired
     private WebSocketService webSocketService;
-
-    @Autowired
     private DataService dataService;
 
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/
@@ -65,14 +61,14 @@ public class WebhookController {
 
             //webhook -> API 호출 or DB 업데이트
             String objectId = saved.getObject().getId();
-            UserList user;
+            ZoomUser user;
             switch (event) {
                 case "user.created":
                 case "user.updated":
                 case "user.deactivated":
                 case "user.activated":
                 case "user.invitation_accepted":
-                    user = dataService.readUserIdOrGetUserAndSave(objectId);
+                    dataService.readZoomUserByIdOrGetZoomUserAndSave(objectId);
                     break;
                 case "user.deleted":
                 case "user.disassociated":

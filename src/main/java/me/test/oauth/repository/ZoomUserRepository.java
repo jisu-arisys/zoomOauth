@@ -1,6 +1,6 @@
 package me.test.oauth.repository;
 
-import me.test.oauth.entity.UserList;
+import me.test.oauth.entity.ZoomUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserListRepository extends JpaRepository<UserList, String> {
+public interface ZoomUserRepository extends JpaRepository<ZoomUser, String> {
     Optional<Object> findByEmail(String email);
 
-    List<UserList> findByDeletedFalse();
+    List<ZoomUser> findByDeletedFalse();
 }

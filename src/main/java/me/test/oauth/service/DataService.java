@@ -7,9 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.dto.UserDetailDto;
-import me.test.oauth.entity.UserList;
+import me.test.oauth.entity.User;
+import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
-import me.test.oauth.repository.UserListRepository;
+import me.test.oauth.repository.ZoomUserRepository;
 import me.test.oauth.repository.UserRepository;
 import me.test.oauth.repository.WebhookEventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,7 @@ public class DataService {
     @Autowired
     private final UserRepository userRepository;
     @Autowired
-    private final UserListRepository userListRepository;
+    private final ZoomUserRepository zoomUserRepository;
     @Autowired
     private final WebhookEventRepository webhookEventRepository;
     @Autowired
@@ -45,9 +46,9 @@ public class DataService {
 
     /** api 조회 후 DB 저장하고 리스트 dto 반환 **/
     @Deprecated
-    public List<UserList> getUserList1(String userId) throws JsonProcessingException {
+    public List<ZoomUser> getZoomUserAll1(String userId) throws JsonProcessingException {
         String usersUrl = "/users/" + userId;
-        List<UserList> allUsers = new ArrayList<>();
+        List<ZoomUser> allUsers = new ArrayList<>();
         String nextPageToken = "";
 
         //사용자 한명 조회
@@ -62,7 +63,7 @@ public class DataService {
             Map<String, Object> parsed = objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
             String usersJson = objectMapper.writeValueAsString(parsed.get("users"));
             if (usersJson != null) {
-                List<UserList> userDtos = objectMapper.readValue(usersJson, new TypeReference<List<UserList>>() {});
+                List<ZoomUser> userDtos = objectMapper.readValue(usersJson, new TypeReference<List<ZoomUser>>() {});
                 allUsers.addAll(userDtos);
             }
             nextPageToken = (String) parsed.get("next_page_token");
@@ -76,14 +77,14 @@ public class DataService {
 
         }while(userId.isEmpty() && nextPageToken.length() > 0);
 
-        userListRepository.saveAll(allUsers);
+        zoomUserRepository.saveAll(allUsers);
 
         return allUsers;
     }
 
     /** api 조회 후 DB 저장하고 리스트 dto 반환 v2**/
-    public List<UserList> getUserList(String userId) throws JsonProcessingException {
-        List<UserList> allUsers = new ArrayList<>();
+    public List<ZoomUser> getZoomUserAll(String userId) throws JsonProcessingException {
+        List<ZoomUser> allUsers = new ArrayList<>();
         String url = userId.isBlank() ? "/users" : "/users/" + userId;
         String nextPageToken = "";
 
@@ -94,13 +95,13 @@ public class DataService {
             Map<String, Object> parsed = objectMapper.readValue(response.getBody(), new TypeReference<>() {});
 
             if (parsed.get("users") == null) { //단일조회
-                UserList user = objectMapper.convertValue(parsed, UserList.class);
+                ZoomUser user = objectMapper.convertValue(parsed, ZoomUser.class);
                 allUsers.add(user);
                 break; // 단일 조회는 page 반복 없음
             }else { //users 목록 바로 매핑 (중간 JSON 문자열로 변환할 필요 없음)
-                List<UserList> users = objectMapper.convertValue(
+                List<ZoomUser> users = objectMapper.convertValue(
                         parsed.get("users"),
-                        new TypeReference<List<UserList>>() {
+                        new TypeReference<List<ZoomUser>>() {
                         }
                 );
                 if (users != null) {
@@ -119,7 +120,7 @@ public class DataService {
     }
 
     /** api 조회 후 DB 저장하고 리스트 dto 반환 **/
-    public UserList getUser(@RequestParam String userId) throws JsonProcessingException {
+    public ZoomUser getZoomUser(@RequestParam String userId) throws JsonProcessingException {
         String usersUrl = "/users/" + userId;
         log.debug("getUser : {}", usersUrl);
 
@@ -129,33 +130,33 @@ public class DataService {
             return null;
         }
 
-        UserList userDto = objectMapper.readValue(json, new TypeReference<UserList>() {});
-        return userListRepository.save(userDto);
+        ZoomUser userDto = objectMapper.readValue(json, new TypeReference<ZoomUser>() {});
+        return zoomUserRepository.save(userDto);
     }
 
     /** api 기준으로 db 업데이트, status 만 기존 데이터 유지 **/
-    public List<UserList> readUserListMatchGetUserListAndSave() throws JsonProcessingException {
-        List<UserList> db = userListRepository.findAll();
-        List<UserList> api = getUserList("");
+    public List<ZoomUser> readZoomUserMatchGetZoomUserAndSave() throws JsonProcessingException {
+        List<ZoomUser> db = zoomUserRepository.findAll();
+        List<ZoomUser> api = getZoomUserAll("");
         //db 에 있지만 api 없으면 setDeleted(true);
         //db 에 없지만 api 있으면 db.add(api.get(i));
-        Map<String, UserList> dbMap = db.stream()
-                .collect(Collectors.toMap(UserList::getId, u -> u));
-        Map<String, UserList> apiMap = api.stream()
-                .collect(Collectors.toMap(UserList::getId, u -> u));
+        Map<String, ZoomUser> dbMap = db.stream()
+                .collect(Collectors.toMap(ZoomUser::getId, u -> u));
+        Map<String, ZoomUser> apiMap = api.stream()
+                .collect(Collectors.toMap(ZoomUser::getId, u -> u));
 
         // 결과 저장 리스트
-        List<UserList> result = new ArrayList<>();
+        List<ZoomUser> result = new ArrayList<>();
 
         // 1) DB 에만 존재 → deleted = true
-        for (UserList dbUser : db) {
+        for (ZoomUser dbUser : db) {
             if (!apiMap.containsKey(dbUser.getId())) {
                 dbUser.setDeleted(true);
                 log.debug("[test]  DB 에만 존재 : {}", dbUser.getEmail());
                 result.add(dbUser);
             }
         }
-        for (UserList apiUser : api) {
+        for (ZoomUser apiUser : api) {
             if (!dbMap.containsKey(apiUser.getId())) {
                 // 2) API 에만 존재 → 신규 추가
                 log.debug("[test]  API 에만 존재 : {}", apiUser.getEmail());
@@ -163,56 +164,63 @@ public class DataService {
                 result.add(apiUser);
             }else {
                 // 3) 공통 사용자 → API 정보를 기본으로 덮어쓰되, status 는 DB 기준 유지
-                UserList dbUser = dbMap.get(apiUser.getId());
+                ZoomUser dbUser = dbMap.get(apiUser.getId());
                 apiUser.setStatus(dbUser.getStatus());
                 result.add(apiUser);
             }
         }
-        return userListRepository.saveAll(result);
+        return zoomUserRepository.saveAll(result);
     }
 
     //// DB 단순조회
-    public List<UserList> readAllUserNotDeleted(){
-        List<UserList> users = userListRepository.findByDeletedFalse();
+    // zoom
+    public List<ZoomUser> readAllZoomUserNotDeleted(){
+        List<ZoomUser> users = zoomUserRepository.findByDeletedFalse();
         return users;
     }
 
-    public UserList readUserById(String userId){
-        UserList user = (UserList) userListRepository.findByEmail(userId).orElse(null);
+    public ZoomUser readZoomUserById(String userId){
+        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(userId).orElse(null);
         return user;
     }
 
-    public UserList readUserByEmail(String email) {
-        UserList user = (UserList) userListRepository.findByEmail(email).orElse(null);
+    public ZoomUser readZoomUserByEmail(String email) {
+        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(email).orElse(null);
         return user;
     }
+
+    // company
+    public User readUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
 
     //// DB 우선조회
-    /** userlist & users 통합 dto 반환 **/
-    public List<UserDetailDto> readUserListAndUser(){
-        List<Object[]> result = userRepository.findAllWithUserList();
-        List<UserDetailDto> findAllWithUserList = getAllUsers(result);
-        return findAllWithUserList;
+    /** ZoomUser & users 통합 dto 반환 **/
+    public List<UserDetailDto> readZoomUserAndUser(){
+        List<Object[]> result = userRepository.findAllUserWithZoomUser();
+        List<UserDetailDto> findAllWithZoomUser = getAllUsers(result);
+        return findAllWithZoomUser;
     }
 
     /** 전체 사용자 목록을 불러옴 **/
-    public List<UserList> readUserListOrGetUserListAndSave() throws JsonProcessingException {
-        List<UserList> user = readAllUserNotDeleted();
+    public List<ZoomUser> readZoomUserOrGetZoomUserAndSave() throws JsonProcessingException {
+        List<ZoomUser> user = readAllZoomUserNotDeleted();
         if (user.isEmpty()) {
-            user = getUserList("");
+            user = getZoomUserAll("");
         }
         return user;
     }
 
     /** 사용자 변경이 발생한 경우, 특정 사용자 목록을 다시 불러옴 **/
-    public UserList readUserOrGetUserAndSave(String email) throws JsonProcessingException {
-        UserList user = (UserList) userListRepository.findByEmail(email).orElse(getUser(email));
+    public ZoomUser readZoomUserOrGetZoomUserAndSave(String email) throws JsonProcessingException {
+        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(email).orElse(getZoomUser(email));
         return user;
     }
 
     /** 사용자 정보 조회 **/
-    public UserList readUserIdOrGetUserAndSave(String userId) throws JsonProcessingException {
-        UserList user = (UserList) userListRepository.findById(userId).orElse(getUser(userId));
+    public ZoomUser readZoomUserByIdOrGetZoomUserAndSave(String userId) throws JsonProcessingException {
+        ZoomUser user = (ZoomUser) zoomUserRepository.findById(userId).orElse(getZoomUser(userId));
         return user;
     }
 
@@ -236,9 +244,9 @@ public class DataService {
         try {
             email = (String) event.get("email");
             String stats = (String) event.get("presence_status");
-            UserList userStats = (UserList) userListRepository.findByEmail(email).orElse(getUser(email));
+            ZoomUser userStats = (ZoomUser) zoomUserRepository.findByEmail(email).orElse(getZoomUser(email));
             userStats.setStatus(stats);
-            UserList result = userListRepository.save(userStats);
+            ZoomUser result = zoomUserRepository.save(userStats);
             log.info("updateStatus success : {} - {}", result.getEmail(), result.getStatus());
             return true;
 
@@ -257,15 +265,19 @@ public class DataService {
     }
 
     /** 사용자 삭제가 발생한 경우, 사용자 정보를 찾아서 deleted 값을 true 로 저장 **/
-    public UserList setUserIdDeleted(String userId) {
-        Optional<UserList> user = userListRepository.findById(userId);
+    public ZoomUser setUserIdDeleted(String userId) {
+        Optional<ZoomUser> user = zoomUserRepository.findById(userId);
         if (user.isPresent()) {
-            UserList exist = user.get();
+            ZoomUser exist = user.get();
             exist.setDeleted(true);
-            UserList saved = userListRepository.save(exist);
+            ZoomUser saved = zoomUserRepository.save(exist);
             return saved;
         }
         return null;
+    }
+
+    public User saveUser(User companyUser) {
+        return userRepository.save(companyUser);
     }
 }
 
