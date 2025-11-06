@@ -25,11 +25,8 @@ import java.util.*;
 /** 사용자의 요청에 REST 응답값을 보내는 컨트롤러 **/
 public class RESTController {
 
-    @Autowired
     private final ZoomApiService zoomApiService;
-
-    @Autowired
-    private DataService dataService;
+    private final DataService dataService;
 
     /** 한 사용자 기준 1분에 한번만 상태변경 요청. **/
     @PostMapping("/zoomUser/update/presence_status/{userId}")
