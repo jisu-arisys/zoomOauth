@@ -199,7 +199,7 @@ public class DataService {
     /** ZoomUser & users 통합 dto 반환 **/
     public List<UserDetailDto> readZoomUserAndUser(){
         List<Object[]> result = userRepository.findAllUserWithZoomUser();
-        List<UserDetailDto> findAllWithZoomUser = getAllUsers(result);
+        List<UserDetailDto> findAllWithZoomUser = UserDetailDto.getAllUsers(result);
         return findAllWithZoomUser;
     }
 

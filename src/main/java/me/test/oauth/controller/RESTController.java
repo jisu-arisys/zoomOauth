@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-import static me.test.oauth.entity.User.companyUserMapping;
-import static me.test.oauth.entity.ZoomUser.zoomUserMapping;
+//import static me.test.oauth.entity.User.companyUserMapping;
+//import static me.test.oauth.entity.ZoomUser.zoomUserMapping;
 
 @Slf4j
 @RestController

@@ -26,7 +26,7 @@ public class ZoomLicense {
     @Column(name = "display_name", length = 128)
     private String displayName;
 
-    public ZoomLicense(String type) {
+    public void setType(String type) {
         Integer typeInt = Integer.parseInt(type);
         ZoomLicense db = ZoomLicenseRepository.findByType(typeInt);
         this.type = db.getType();
