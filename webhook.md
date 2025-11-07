@@ -366,3 +366,36 @@ Zoom API 호출 성공 후에는 반드시 GET /users/{userId} 또는 삭제 상
 2. 사용자 생성	POST /users	생성 성공 시 → GET /users/{userId} 재조회 → DB 에 신규 저장
 3. 사용자 수정	PATCH /users/{userId}	수정 성공 시 → GET /users/{userId} 재조회 → DB 정보 갱신
 4. 사용자 삭제	DELETE /users/{userId}	삭제 성공 시 → DB 에서 deleted = true 로 표시 (소프트 삭제)
+
+```mermaid
+
+sequenceDiagram
+    participant UI as 사용자 화면(Vue)
+    participant S as 백엔드 서버(REST Controller)
+    participant DB as 로컬 DB
+    participant Z as Zoom API 서버
+    participant WH as 백엔드 서버(Webhook Controller)
+
+    %% 1. 사내 정보 변경
+    UI->>S: 사내 사용자 정보 변경 요청 (userDetail/update/detail/{userId})
+    S->>DB: UPDATE user SET ... 
+    DB-->>S: 저장 완료
+
+    %% 2. Zoom 사용자 정보 변경 (직접 반영)
+    S->>Z: PATCH /users/{userId} (상태/권한/라이센스 변경)
+    Z-->>S: 응답 (성공)
+    S-->>UI: 사용자 정보 업데이트 완료 표시
+
+    %% 2-1. Zoom 서버 → Webhook async 전파
+    Z->>WH: webhook event (presence/attribute 변경)
+    WH->>WH: Webhook 검증 & payload 파싱
+    WH->>DB: CREATE webhook event
+    DB-->>WH: 저장 완료
+    WH->>Z: GET /users/{id} (최종 최신 사용자 정보 조회)
+    Z-->>WH: 최신 ZoomUser JSON 반환
+    WH->>DB: UPDATE ZoomUser SET ...
+    DB-->>WH: 저장 완료
+    WH->>UI: [웹소켓] 사용자 정보 갱신 알림 (updateCard)
+    WH-->>Z: 응답 (성공)
+
+```

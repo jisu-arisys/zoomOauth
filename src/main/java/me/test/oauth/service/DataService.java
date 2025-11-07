@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
-import me.test.oauth.dto.UserDetailDto;
+import me.test.oauth.dto.DtoUsers;
 import me.test.oauth.entity.User;
 import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
@@ -20,8 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static me.test.oauth.dto.UserDetailDto.getAllUsers;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -197,10 +195,9 @@ public class DataService {
 
     //// DB 우선조회
     /** ZoomUser & users 통합 dto 반환 **/
-    public List<UserDetailDto> readZoomUserAndUser(){
-        List<Object[]> result = userRepository.findAllUserWithZoomUser();
-        List<UserDetailDto> findAllWithZoomUser = UserDetailDto.getAllUsers(result);
-        return findAllWithZoomUser;
+    public List<DtoUsers> readZoomUserAndUser(){
+        List<DtoUsers> result = userRepository.findAllUserWithZoomUser();
+        return result;
     }
 
     /** 전체 사용자 목록을 불러옴 **/

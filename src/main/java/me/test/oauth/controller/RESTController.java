@@ -1,22 +1,19 @@
 package me.test.oauth.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.test.oauth.dto.UserDetailDto;
+import me.test.oauth.dto.DtoUsers;
 import me.test.oauth.entity.User;
 import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.service.DataService;
 import me.test.oauth.service.ZoomApiService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-
-//import static me.test.oauth.entity.User.companyUserMapping;
-//import static me.test.oauth.entity.ZoomUser.zoomUserMapping;
 
 @Slf4j
 @RestController
@@ -27,6 +24,7 @@ public class RESTController {
 
     private final ZoomApiService zoomApiService;
     private final DataService dataService;
+    private final ObjectMapper objectMapper;
 
     /** 한 사용자 기준 1분에 한번만 상태변경 요청. **/
     @PostMapping("/zoomUser/update/presence_status/{userId}")
@@ -124,9 +122,55 @@ public class RESTController {
     ////// zoomUser & user 통합 데이터 관리
 
     @GetMapping("/userDetail")
-    public ResponseEntity<List<UserDetailDto>> getZoomUserVue() {
-        List<UserDetailDto> list = dataService.readZoomUserAndUser();
+    public ResponseEntity<List<DtoUsers>> getZoomUserVue() {
+        List<DtoUsers> list = dataService.readZoomUserAndUser();
         return ResponseEntity.ok(list);
+    }
+
+    @PostMapping("/userDetail/delete")
+    public ResponseEntity<String> deleteZoomUserVue(@RequestBody String email) {
+        log.info("[test]deleteZoomUserVue : {}", email);
+        ResponseEntity<String> response = zoomApiService.api("/users/"+email, HttpMethod.DELETE, null);
+        return response;
+    }
+
+    @PostMapping("/userDetail/update/detail/{userId}")
+    public ResponseEntity<DtoUsers> updateUserDetail(@PathVariable String userId, @RequestBody Map<String,Object> bodyMap ) throws JsonProcessingException {
+        log.debug("[test]updateUserDetail : {}, {}", userId, bodyMap);
+        Map<String, Object> zoomMap = new HashMap<>();
+
+        //줌사용 정지 api 호출 : DB만 논리삭제시, zoom api reload 시 원복됨 / api 호출시 zoom 사용내역 삭제됨. / api 비활성화 처리를 해야함!!!!!
+        if(bodyMap.containsKey("deleted")) {
+            ResponseEntity<String> response = this.deleteUser(userId);
+            log.warn("[test]updateUserDetail deleteUser response: {}", response);
+        }
+
+        //줌 라이센스 api 호출
+        if(bodyMap.containsKey("licenseName")) {
+            Integer type = bodyMap.containsKey("type")? (Integer)bodyMap.get("type") : 0;
+            zoomMap.put("type", type);
+        }
+
+        if(bodyMap.containsKey("name")) zoomMap.put("name", (String)bodyMap.get("name"));
+        if(bodyMap.containsKey("dept")) zoomMap.put("dept", (String)bodyMap.get("dept"));
+        if(bodyMap.containsKey("position")) zoomMap.put("job_title", (String)bodyMap.get("position"));
+
+        User companyUser = dataService.readUserByEmail(userId);
+
+        //사용자 정보
+        if(bodyMap.containsKey("empNo")) companyUser.setEmpNo((Long) bodyMap.get("empNo"));
+        if(bodyMap.containsKey("displayName")) companyUser.setUsername((String)bodyMap.get("displayName"));
+        if(bodyMap.containsKey("userType")) companyUser.setUserType((String) bodyMap.get("userType"));
+
+        log.debug("[test]updateUserDetail zoomMap: {}, companyUser: {}", zoomMap, companyUser);
+        ResponseEntity<String> response = zoomApiService.api("/users/" + userId, HttpMethod.PATCH, zoomMap); //혹시 불필요 데이터 담아도 되나? : 라이센스는 name -> type 으로 변환 후 맵에 추가해야함.
+
+        log.debug("[test]updateUserDetail zoomApiService response: {}", response);
+        ZoomUser updatedZoomUser = dataService.getZoomUser(userId); //api 가 진실이므로 캐시인 DB는 참조하지 않음.
+        User updatedCompanyUser = dataService.saveUser(companyUser);
+        DtoUsers updated = new DtoUsers(updatedCompanyUser, updatedZoomUser);
+        log.debug("[test]updateUserDetail updated: {}", updated);
+        return ResponseEntity.ok(updated);
     }
 
 }
