@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface ZoomUserRepository extends JpaRepository<ZoomUser, String> {
-    Optional<Object> findByEmail(String email);
+    Optional<ZoomUser> findByEmail(String email);
 
     List<ZoomUser> findByDeletedFalse();
 }

@@ -8,8 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.dto.DtoUsers;
 import me.test.oauth.entity.User;
+import me.test.oauth.entity.ZoomLicense;
 import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
+import me.test.oauth.repository.ZoomLicenseRepository;
 import me.test.oauth.repository.ZoomUserRepository;
 import me.test.oauth.repository.UserRepository;
 import me.test.oauth.repository.WebhookEventRepository;
@@ -31,6 +33,8 @@ public class DataService {
     private ZoomApiService zoomApiService;
     @Autowired
     private final UserRepository userRepository;
+    @Autowired
+    private final ZoomLicenseRepository zoomLicenseRepository;
     @Autowired
     private final ZoomUserRepository zoomUserRepository;
     @Autowired
@@ -178,12 +182,12 @@ public class DataService {
     }
 
     public ZoomUser readZoomUserById(String userId){
-        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(userId).orElse(null);
+        ZoomUser user = zoomUserRepository.findByEmail(userId).orElse(null);
         return user;
     }
 
     public ZoomUser readZoomUserByEmail(String email) {
-        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(email).orElse(null);
+        ZoomUser user = zoomUserRepository.findByEmail(email).orElse(null);
         return user;
     }
 
@@ -200,6 +204,12 @@ public class DataService {
         return result;
     }
 
+    /** ZoomUser & users 통합 dto 반환 **/
+    public DtoUsers readZoomUserAndUserByEmail(String email){
+        DtoUsers result = userRepository.findByIdUserWithZoomUser(email);
+        return result;
+    }
+
     /** 전체 사용자 목록을 불러옴 **/
     public List<ZoomUser> readZoomUserOrGetZoomUserAndSave() throws JsonProcessingException {
         List<ZoomUser> user = readAllZoomUserNotDeleted();
@@ -211,13 +221,13 @@ public class DataService {
 
     /** 사용자 변경이 발생한 경우, 특정 사용자 목록을 다시 불러옴 **/
     public ZoomUser readZoomUserOrGetZoomUserAndSave(String email) throws JsonProcessingException {
-        ZoomUser user = (ZoomUser) zoomUserRepository.findByEmail(email).orElse(getZoomUser(email));
+        ZoomUser user = zoomUserRepository.findByEmail(email).orElse(getZoomUser(email));
         return user;
     }
 
     /** 사용자 정보 조회 **/
     public ZoomUser readZoomUserByIdOrGetZoomUserAndSave(String userId) throws JsonProcessingException {
-        ZoomUser user = (ZoomUser) zoomUserRepository.findById(userId).orElse(getZoomUser(userId));
+        ZoomUser user = zoomUserRepository.findById(userId).orElse(getZoomUser(userId));
         return user;
     }
 
@@ -275,6 +285,10 @@ public class DataService {
 
     public User saveUser(User companyUser) {
         return userRepository.save(companyUser);
+    }
+
+    public ZoomLicense getZoomUserById(String licenseName) {
+        return zoomLicenseRepository.findTypeByName(licenseName);
     }
 }
 

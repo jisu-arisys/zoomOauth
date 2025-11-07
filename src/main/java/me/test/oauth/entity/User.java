@@ -41,7 +41,7 @@ public class User {
     @Column(name = "activated")
     private Integer activated;
 
-    public void setUserType(String s) {
-        this.userType = Authority.builder().authorityName(s).build();
+    public void setUserType(Authority userType) {
+        this.userType = userType;
     }
 }

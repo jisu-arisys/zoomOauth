@@ -174,17 +174,4 @@ public class ZoomUser {
     public Integer getType() {
         return this.licenseInfoList != null ? this.licenseInfoList.getType() : null;
     }
-
-    // ZoomUser 에 적용할 속성맵
-//    public static final Map<String, BiConsumer<ZoomUser, String>> zoomUserMapping = Map.of(
-//            "firstName", ZoomUser::setFirstName,
-//            "lastName", ZoomUser::setLastName,
-//            "displayName", ZoomUser::setDisplayName,
-//            "phoneNumber", ZoomUser::setPhoneNumber,
-//            "position", (ZoomUser::setJobTitle)
-//    );
-//
-//    private void setLicenseInfoList(String type) {
-//        this.licenseInfoList.setType(type);
-//    }
 }

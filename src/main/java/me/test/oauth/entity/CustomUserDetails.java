@@ -39,7 +39,7 @@ public class CustomUserDetails implements UserDetails {
     public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() { return user.getUserType().getAuthorityName() != "LOCK"; }
+    public boolean isAccountNonLocked() { return user.getUserType().getAuthority() != "ROLE_LOCK"; }
 
     @Override
     public boolean isCredentialsNonExpired() { return true; }

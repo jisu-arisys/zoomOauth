@@ -4,6 +4,7 @@ import me.test.oauth.dto.DtoUsers;
 import me.test.oauth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,4 +21,12 @@ public interface UserRepository extends JpaRepository<User, String> {
     List<DtoUsers> findAllUserWithZoomUser();
 
     Optional<User> findByUsername(String username);
+
+    @Query("""
+    SELECT new me.test.oauth.dto.DtoUsers(u, zu)
+    FROM User u
+    LEFT JOIN ZoomUser zu ON u.email = zu.email 
+    WHERE u.email = :email
+    """)
+        DtoUsers findByIdUserWithZoomUser(@Param("email") String email);
 }

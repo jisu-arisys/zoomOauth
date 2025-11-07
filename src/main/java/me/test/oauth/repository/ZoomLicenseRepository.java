@@ -9,4 +9,8 @@ public interface ZoomLicenseRepository extends JpaRepository<ZoomLicense, String
     static ZoomLicense findByType(Integer type) {
         return ZoomLicenseRepository.findByType(type);
     }
+
+    ZoomLicense findByName(String name);
+
+    ZoomLicense findTypeByName(String name);
 }
