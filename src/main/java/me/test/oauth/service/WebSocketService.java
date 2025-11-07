@@ -38,6 +38,9 @@ public class WebSocketService {
             String type = event.get("queueType").toString();
 
             switch (type) {
+                case "user.updated":
+                    publishCtiEvent(event, "/topic/user-detail");
+                    break;
                 case "user.created":
                     publishCtiEvent(event, "/topic/user-manage");
                     break;

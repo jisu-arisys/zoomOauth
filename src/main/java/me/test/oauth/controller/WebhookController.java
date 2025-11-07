@@ -8,7 +8,6 @@ import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.service.DataService;
 import me.test.oauth.service.WebSocketService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +28,7 @@ public class WebhookController {
 
     /** Node.js 기준: 키 순서 유지, 들여쓰기 제거, null 포함하여 JSON 직력화 하기위함.**/
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
-    private WebSocketService webSocketService;
+    private  WebSocketService webSocketService;
     private DataService dataService;
 
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/

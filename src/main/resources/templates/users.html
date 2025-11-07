@@ -225,6 +225,18 @@
         $errorBox.classList.add('show');
     }
 
+    function setCard(datum) {
+        const $card = $board.getElementById(datum.email);
+        $card.querySelector(".darkgreen").innerText = datum.display_name;
+        $card.querySelector(".green").innerText = datum.status;
+
+        // $card.addEventListener("click", function () {
+        //     $userId.value = datum.id;
+        // });
+
+        $board.change($card);
+    }
+
     function initCard(data) {
         for (const datum of data) {
             const $card = $cardItem.cloneNode(true);
@@ -334,6 +346,17 @@
                 writeLog(data);
                 updateStatus(data.object);
             });
+
+            // 유저 정보변경 이벤트 구독 : 카드 업데이트
+            stompClient.subscribe('/topic/user-detail', (message) => {
+                const data = JSON.parse(message.body);
+                console.log('Received:', data);
+                writeLog(data);
+                if(confirm("사용자 "+ data.object.email +"의 정보가 변경되었습니다.")){
+                    setCard([data.object]);
+                }
+            });
+
 
             // 유저 정보변경 이벤트 구독 : 카드 새로받기
             stompClient.subscribe('/topic/user-manage', (message) => {
