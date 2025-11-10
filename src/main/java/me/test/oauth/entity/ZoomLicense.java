@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.persistence.*;
 import lombok.*;
-import me.test.oauth.repository.ZoomLicenseRepository;
 
+@ToString
 @Entity
 @Table(name="zoom_license")
 @Getter

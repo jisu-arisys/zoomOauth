@@ -9,10 +9,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
 
 /** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함.**/
+@ToString
 @Entity
 @Table(name="zoomUser")
 @Getter

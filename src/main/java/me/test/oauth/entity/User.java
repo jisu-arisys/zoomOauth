@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+@ToString
 @Entity
 @Table(name="employee")
 @Getter
@@ -28,8 +29,9 @@ public class User {
     @Column(name = "email", length = 100)
     private String email;
 
-    @Column(name = "dept_code", length = 100)
-    private String deptCode;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "dept_code", referencedColumnName = "dept_code")
+    private Department dept;
 
     @Column(name = "position", length = 100)
     private String position;

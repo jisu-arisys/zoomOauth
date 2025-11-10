@@ -7,14 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
 import me.test.oauth.dto.DtoUsers;
-import me.test.oauth.entity.User;
-import me.test.oauth.entity.ZoomLicense;
-import me.test.oauth.entity.ZoomUser;
+import me.test.oauth.entity.*;
 import me.test.oauth.entity.webhook.WebhookEvent;
-import me.test.oauth.repository.ZoomLicenseRepository;
-import me.test.oauth.repository.ZoomUserRepository;
-import me.test.oauth.repository.UserRepository;
-import me.test.oauth.repository.WebhookEventRepository;
+import me.test.oauth.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -31,6 +26,10 @@ public class DataService {
 
     @Autowired
     private ZoomApiService zoomApiService;
+    @Autowired
+    private final DeptRepository deptRepository;
+    @Autowired
+    private final AuthRepository authRepository;
     @Autowired
     private final UserRepository userRepository;
     @Autowired
@@ -289,6 +288,18 @@ public class DataService {
 
     public ZoomLicense getZoomUserById(String licenseName) {
         return zoomLicenseRepository.findTypeByName(licenseName);
+    }
+
+    public List<ZoomLicense> getLicense() {
+        return zoomLicenseRepository.findAll();
+    }
+
+    public List<Authority> getAuthorities() {
+        return authRepository.findAll();
+    }
+
+    public List<Department> getDepartments() {
+        return deptRepository.findAll();
     }
 }
 

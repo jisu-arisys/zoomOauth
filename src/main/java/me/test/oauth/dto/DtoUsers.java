@@ -2,14 +2,13 @@ package me.test.oauth.dto;
 
 import lombok.*;
 import me.test.oauth.entity.User;
-import me.test.oauth.entity.ZoomLicense;
 import me.test.oauth.entity.ZoomUser;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
+@ToString
 @Getter
 @Setter
 @Builder
@@ -21,7 +20,7 @@ public class DtoUsers {
 
 
     public DtoUsers getUpdateUser(DtoUsers db) {
-        return new DtoUsers(getUpdatedUserByTen(db.getUser()), getUpdatedZoomUserByFive(db.getZoomUser()));
+        return new DtoUsers(getUpdatedUserByFive(db.getUser()), getUpdatedZoomUserByFive(db.getZoomUser()));
     }
 
     private boolean isValid(Object value) {
@@ -30,12 +29,20 @@ public class DtoUsers {
         return true;
     }
 
-    public User getUpdatedUserByTen(User dbUser) {
+    public User getUpdatedUserByFive(User dbUser) {
         if (dbUser == null || this.user == null) return dbUser;
 
         // 변경 필드만 반영
+        if (isValid(user.getUsername()) && !user.getUsername().equals(dbUser.getUsername())) {
+            dbUser.setUsername(user.getUsername());
+        }
+
         if (isValid(user.getPosition()) && !user.getPosition().equals(dbUser.getPosition())) {
             dbUser.setPosition(user.getPosition());
+        }
+
+        if (isValid(user.getDept().getDeptCode()) && !user.getDept().equals(dbUser.getDept().getDeptCode())) {
+            dbUser.setDept(user.getDept());
         }
 
         if (isValid(user.getActivated()) && !user.getActivated().equals(dbUser.getActivated())) {
@@ -64,44 +71,25 @@ public class DtoUsers {
             dbZoomUser.setDept(zoomUser.getDept());
         }
 
-        // ✅ licenseInfoList.name → ZoomLicense 엔티티 찾아 매핑
-        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName())) {
-            String newLicenseName = zoomUser.getLicenseInfoList().getName();
-            if (dbZoomUser.getLicenseInfoList() == null ||
-                    !newLicenseName.equals(dbZoomUser.getLicenseInfoList().getName())) {
-
-                int type = 0;
-                switch (newLicenseName) {
-                    case "Basic":
-                        type = 1;
-                        break;
-                    case "Licensed":
-                        type = 2;
-                        break;
-                    case "Unassigned without Meetings Basic":
-                        type = 4;
-                        break;
-                }
-                if (type > 0){
-                    ZoomLicense dbLicense = dbZoomUser.getLicenseInfoList();
-                    dbLicense.setType(type);
-                    dbLicense.setName(newLicenseName);
-                    dbZoomUser.setLicenseInfoList(dbLicense);
-                }
-            }
+        // ✅ 직책
+        if (isValid(zoomUser.getJobTitle()) && !zoomUser.getJobTitle().equals(dbZoomUser.getJobTitle())) {
+            dbZoomUser.setJobTitle(zoomUser.getJobTitle());
         }
 
-        // ✅ 논리삭제 여부
-        dbZoomUser.setDeleted(zoomUser.isDeleted());
+        // ✅ 라이센스
+        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName())
+            && !zoomUser.getLicenseInfoList().getName().equals(dbZoomUser.getLicenseInfoList().getName())) {
+                dbZoomUser.setLicenseInfoList(zoomUser.getLicenseInfoList());
+        }
 
         return dbZoomUser;
     }
 
-    public Map<String, Object> getUpdatedZoomUserMapByFive(ZoomUser dbZoomUser, List<ZoomLicense> zoomLicenseList) {
+    public Map<String, Object> getUpdatedZoomUserMapByFive(ZoomUser dbZoomUser) {
         Map<String, Object> zoomMap = new HashMap<>();
         if (dbZoomUser == null || this.zoomUser == null) return zoomMap;
 
-        // ✅ displayName
+        // ✅ 이름
         if (isValid(zoomUser.getDisplayName()) && !zoomUser.getDisplayName().equals(dbZoomUser.getDisplayName())) {
             zoomMap.put("display_name", zoomUser.getDisplayName());
         }
@@ -111,35 +99,16 @@ public class DtoUsers {
             zoomMap.put("dept", zoomUser.getDept());
         }
 
-        // ✅ licenseInfoList.name → ZoomLicense 엔티티 찾아 매핑
-        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName())) {
-            String newLicenseName = zoomUser.getLicenseInfoList().getName();
-            if (dbZoomUser.getLicenseInfoList() == null ||
-                    !newLicenseName.equals(dbZoomUser.getLicenseInfoList().getName())) {
-                //1. ✔ 서비스 또는 레포지토리를 주입받아 사용해야 함
-                // ex) zoomUser.setLicenseInfoList(zoomLicenseRepository.findById(newLicenseName).orElse(null));
+        // ✅ 직책
+        if (isValid(zoomUser.getJobTitle()) && !zoomUser.getJobTitle().equals(dbZoomUser.getJobTitle())) {
+            zoomMap.put("job_title", zoomUser.getJobTitle());
+        }
 
-                //2. 받아온 목록에서 일치하는 값 찾기
-                //ZoomLicense db = (ZoomLicense) zoomLicenseList.stream().filter((zoomLicense -> zoomLicense.getName().equals(newLicenseName)));
-                //int type = db.getType();
-
-                //3. 하드코딩 파싱
-                int type = 0;
-                switch (newLicenseName) {
-                    case "Basic":
-                        type = 1;
-                        break;
-                    case "Licensed":
-                        type = 2;
-                        break;
-                    case "Unassigned without Meetings Basic":
-                        type = 4;
-                        break;
-                }
-                if (type > 0){
-                    zoomMap.put("type", type);
-                }
-            }
+        // ✅ 라이센스
+        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName()) &&
+                !zoomUser.getLicenseInfoList().getName().equals(dbZoomUser.getLicenseInfoList().getName())) {
+                //4.  vue 에서 라이센스 객체를 전달
+                zoomMap.put("type", zoomUser.getLicenseInfoList().getType());
         }
         return zoomMap;
     }
