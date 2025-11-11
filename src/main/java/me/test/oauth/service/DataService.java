@@ -44,45 +44,6 @@ public class DataService {
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
 
     //// api 우선조회
-
-    /** api 조회 후 DB 저장하고 리스트 dto 반환 **/
-    @Deprecated
-    public List<ZoomUser> getZoomUserAll1(String userId) throws JsonProcessingException {
-        String usersUrl = "/users/" + userId;
-        List<ZoomUser> allUsers = new ArrayList<>();
-        String nextPageToken = "";
-
-        //사용자 한명 조회
-        ResponseEntity<String> response = zoomApiService.api(usersUrl, HttpMethod.GET, null);
-        if (!response.getStatusCode().equals(HttpStatusCode.valueOf(200))){
-            return null;
-        }
-        String json = response.getBody();
-
-        //사용자 전체 조회
-        do{
-            Map<String, Object> parsed = objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
-            String usersJson = objectMapper.writeValueAsString(parsed.get("users"));
-            if (usersJson != null) {
-                List<ZoomUser> userDtos = objectMapper.readValue(usersJson, new TypeReference<List<ZoomUser>>() {});
-                allUsers.addAll(userDtos);
-            }
-            nextPageToken = (String) parsed.get("next_page_token");
-            if (nextPageToken.length() > 0) {
-                String nextUsersUrl = "/users?next_page_token=" + nextPageToken;
-                json = zoomApiService.getApi(nextUsersUrl);
-                if (json.startsWith("fail")){
-                    nextPageToken = "";
-                }
-            }
-
-        }while(userId.isEmpty() && nextPageToken.length() > 0);
-
-        zoomUserRepository.saveAll(allUsers);
-
-        return allUsers;
-    }
-
     /** api 조회 후 DB 저장하고 리스트 dto 반환 v2**/
     public List<ZoomUser> getZoomUserAll(String userId) throws JsonProcessingException {
         List<ZoomUser> allUsers = new ArrayList<>();
@@ -126,12 +87,15 @@ public class DataService {
         log.debug("getUser : {}", usersUrl);
 
         //사용자 한명 조회
-        String json = zoomApiService.getApi(usersUrl);
-        if (json.startsWith("fail")){
-            return null;
-        }
+        ResponseEntity<String> response = zoomApiService.api(usersUrl, HttpMethod.GET, null);
+        if (! response.getStatusCode().is2xxSuccessful()) return null;
+        String json = response.getBody();
+        log.debug("getUser json : {}", json);
 
         ZoomUser userDto = objectMapper.readValue(json, new TypeReference<ZoomUser>() {});
+        //영속성을 위해 ZoomLicense 조회 후 다시 담아주기
+        ZoomLicense exist = zoomLicenseRepository.findByType(userDto.getType()).orElse(null);
+        userDto.setLicenseInfoList(exist);
         return zoomUserRepository.save(userDto);
     }
 
@@ -233,7 +197,7 @@ public class DataService {
     //// DB 저장
     /** 검증된 webhook 이벤트를 받으면, DB에 담아 로그를 남김**/
     public WebhookEvent saveWebhook(String event, LinkedHashMap<String, Object> payloadMap, LinkedHashMap<String, Object> json) {
-        log.info("saveWebhook : {} - {}", event, payloadMap);
+        //log.info("saveWebhook : {} - {}", event, payloadMap);
         json.putAll(payloadMap);
         json.remove("payload");
         WebhookEvent webhookEvent = objectMapper.convertValue(json, WebhookEvent.class);

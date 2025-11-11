@@ -2,6 +2,7 @@ package me.test.oauth.dto;
 
 import lombok.*;
 import me.test.oauth.entity.User;
+import me.test.oauth.entity.ZoomLicense;
 import me.test.oauth.entity.ZoomUser;
 
 import java.util.HashMap;
@@ -77,8 +78,9 @@ public class DtoUsers {
         }
 
         // ✅ 라이센스
-        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName())
-            && !zoomUser.getLicenseInfoList().getName().equals(dbZoomUser.getLicenseInfoList().getName())) {
+        ZoomLicense newLic = zoomUser.getLicenseInfoList();
+        ZoomLicense oldLic = dbZoomUser.getLicenseInfoList();
+        if (newLic != null && isValid(newLic.getName()) && ( oldLic == null || !newLic.getName().equals(oldLic.getName()))){
                 dbZoomUser.setLicenseInfoList(zoomUser.getLicenseInfoList());
         }
 
@@ -105,8 +107,9 @@ public class DtoUsers {
         }
 
         // ✅ 라이센스
-        if (zoomUser.getLicenseInfoList() != null && isValid(zoomUser.getLicenseInfoList().getName()) &&
-                !zoomUser.getLicenseInfoList().getName().equals(dbZoomUser.getLicenseInfoList().getName())) {
+        ZoomLicense newLic = zoomUser.getLicenseInfoList();
+        ZoomLicense oldLic = dbZoomUser.getLicenseInfoList();
+        if (newLic != null && isValid(newLic.getName()) && ( oldLic == null || !newLic.getName().equals(oldLic.getName()))){
                 //4.  vue 에서 라이센스 객체를 전달
                 zoomMap.put("type", zoomUser.getLicenseInfoList().getType());
         }

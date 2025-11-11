@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함.**/
+/** api 가이드 기반 작성했으나, 일부 조회되지 않는 데이터는 주석처리함. JPA 엔티티는 DB 접근 로직을 가져선 안 된다. **/
 @ToString
 @Entity
 @Table(name="zoomUser")

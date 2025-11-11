@@ -16,10 +16,10 @@ import lombok.*;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ZoomLicense {
 
+    @Id
     @Column(name = "type")
     private Integer type;
 
-    @Id
     @Column(name = "name", length = 128)
     private String name;
 

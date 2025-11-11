@@ -4,13 +4,13 @@ import me.test.oauth.entity.ZoomLicense;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface ZoomLicenseRepository extends JpaRepository<ZoomLicense, String> {
-    static ZoomLicense findByType(Integer type) {
-        return ZoomLicenseRepository.findByType(type);
-    }
+    Optional<ZoomLicense> findByType(Integer type);
 
-    ZoomLicense findByName(String name);
+    Optional<ZoomLicense> findByName(String name);
 
     ZoomLicense findTypeByName(String name);
 }
