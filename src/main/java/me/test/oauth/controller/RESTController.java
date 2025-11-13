@@ -1,9 +1,11 @@
 package me.test.oauth.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.test.oauth.dto.DtoOrganization;
 import me.test.oauth.dto.DtoUsers;
 import me.test.oauth.entity.*;
 import me.test.oauth.service.DataService;
@@ -30,7 +32,7 @@ public class RESTController {
     public ResponseEntity<String> setUserPresenceStatus(@PathVariable String userId, @RequestBody Map<String, Object> bodyMap) throws JsonProcessingException {
         log.info("[test]setUserPresenceStatus : {}", bodyMap);
         //api 로 존재하는 ID 체크 및 DB 정보저장
-        ZoomUser user = dataService.getZoomUser(userId);
+        ZoomUser user = dataService.zoomOps.getZoomUser(userId);
         if (user == null) {
             Map<String, Object> error = new LinkedHashMap<>();
             error.put("event", "error");
@@ -51,14 +53,14 @@ public class RESTController {
         List<ZoomUser> list;
         if (isForce) {
             //api 호출 후 DB 저장
-            list = dataService.readZoomUserMatchGetZoomUserAndSave();
-            log.debug("[test] isForce readZoomUserMatchGetZoomUserAndSave() {}건 DB 중", list.size());
+            list = dataService.zoomOps.patchByGetStatus();
+            log.debug("[test] isForce zoomOps.patchByGetStatus() {}건 DB 중", list.size());
             list = dataService.readAllZoomUserNotDeleted();
             log.debug("[test] {}건 반환", list.size());
         } else {
             //DB 조회 > 없으면 api 호출 후 DB 저장
-            log.debug("[test] readZoomUserOrGetZoomUserAndSave()");
-            list = dataService.readZoomUserOrGetZoomUserAndSave();
+            log.debug("[test] readOrGetAndSaveZoomUser()");
+            list = dataService.zoomOps.readOrGetAndSaveZoomUser();
         }
         return ResponseEntity.ok(list);
     }
@@ -70,10 +72,10 @@ public class RESTController {
         ZoomUser user;
         if (isForce) {
             //api 호출 후 DB 저장
-            user = dataService.getZoomUser(userId);
+            user = dataService.zoomOps.getZoomUser(userId);
         } else {
             //DB 조회 > 없으면 api 호출 후 DB 저장
-            user = dataService.readZoomUserOrGetZoomUserAndSave(userId);
+            user = dataService.zoomOps.readOrGetAndSaveZoomUserByEmail(userId);
         }
         return ResponseEntity.ok(user);
     }
@@ -85,10 +87,10 @@ public class RESTController {
         List<ZoomUser> users;
         if (isForce) {
             //api 호출 후 DB 저장
-            users = dataService.readZoomUserMatchGetZoomUserAndSave();
+            users = dataService.zoomOps.patchByGetStatus();
         } else {
             //DB 조회 > 없으면 api 호출 후 DB 저장
-            users = dataService.readZoomUserOrGetZoomUserAndSave();
+            users = dataService.zoomOps.readOrGetAndSaveZoomUser();
         }
         return ResponseEntity.ok(users);
     }
@@ -122,7 +124,7 @@ public class RESTController {
 
     @GetMapping("/userDetail")
     public ResponseEntity<List<DtoUsers>> getZoomUserVue() {
-        List<DtoUsers> list = dataService.readZoomUserAndUser();
+        List<DtoUsers> list = dataService.getZoomUserAndUser();
         return ResponseEntity.ok(list);
     }
 
@@ -138,7 +140,7 @@ public class RESTController {
     public ResponseEntity<DtoUsers> updateUserDetail(@PathVariable String userId, @RequestBody DtoUsers dtoUsers) {
         log.info("[test]updateUserDetail : {}, {}", userId, dtoUsers.toString());
         //기존사용자 정보 불러오기
-        DtoUsers db = dataService.readZoomUserAndUserByEmail(userId);
+        DtoUsers db = dataService.getZoomUserAndUserByEmail(userId);
         if(db == null) { return ResponseEntity.notFound().build();}
 
         //zoomUser 변경사항 map 먼저 받기
@@ -162,10 +164,43 @@ public class RESTController {
 
     @GetMapping("/base/selectOption")
     public ResponseEntity<Map<String, List<?>>> getSelectOption() {
-        List<ZoomLicense> licenses = dataService.getLicense();
-        List<Authority> authorities = dataService.getAuthorities();
-        List<Department> departments = dataService.getDepartments();
-        return ResponseEntity.ok(Map.of("dept",departments, "userType", authorities, "license",licenses));
+        // 한 트랜잭션으로 3개 쿼리 실행
+        return ResponseEntity.ok(dataService.loadBaseOptions());
+    }
+
+    @GetMapping("/organizations")
+    public ResponseEntity<List<DtoOrganization>> getOrganizationList(){
+        List<DtoOrganization> organizations = dataService.orgOps.getOrgJoinUser();
+        log.debug("[test]getOrganizationList : {}", organizations.toString());
+        return ResponseEntity.ok(organizations);
+    }
+
+    /** 사용자의 조직정보 변경에 대한 처리
+     1. 화면단에서 받은 {depts:[], users:[]}
+     2. List<User> 와 매칭되는 List<dtoUser> 조회
+     3. 변경필드 추적해서 List<dtoUser> merge 반환, 변경항목 map 에 담기
+     4. List<dtoUser> DB 저장 및 api 호출(map)
+     5. List<Department> DB 저장.
+     **/
+
+    @PostMapping("/organizations/update")
+    public ResponseEntity<List<DtoOrganization>> patchOrganizationList(@RequestBody  Map<String, Object> map){
+        //데이터 추출 : {depts:[], users:[]}
+        log.debug("[test]patchOrganizationList : {}", map.toString());
+        List<Department> depts = objectMapper.convertValue(
+                map.get("depts"), new TypeReference<List<Department>>() {}
+        );
+        List<User> users = objectMapper.convertValue(
+                map.get("users"), new TypeReference<List<User>>() {}
+        );
+        //사용자 부서정보 업데이트 병합, DB 호출, API 호출
+        List<DtoUsers> mergedDtoUsers = dataService.orgOps.patchByUser(users, null);
+
+        //DB 업데이트
+        List<Department> updateDepts = dataService.saveAllDept(depts);
+
+        //변경내역 새로 조회해서 전달하기.
+        return getOrganizationList();
     }
 
 }

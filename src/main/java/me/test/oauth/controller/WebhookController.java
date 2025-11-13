@@ -1,8 +1,10 @@
 package me.test.oauth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.test.oauth.common.JsonUtil;
+import me.test.oauth.common.RequestLatencyTracker;
 import me.test.oauth.common.SHA256Cipher;
 import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
@@ -22,6 +24,7 @@ import java.util.Map;
 @RequestMapping("/webhook")
 @PropertySource("classpath:zoom.properties")
 @Slf4j
+@RequiredArgsConstructor
 public class WebhookController {
     /** zoom webhook secret token : 검증을 위한 해싱 솔트키 **/
     @Value("${zoom.webhook.secret.token}")
@@ -29,10 +32,8 @@ public class WebhookController {
 
     /** Node.js 기준: 키 순서 유지, 들여쓰기 제거, null 포함하여 JSON 직력화 하기위함.**/
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
-    @Autowired
-    private  WebSocketService webSocketService;
-    @Autowired
-    private DataService dataService;
+    private final WebSocketService webSocketService;
+    private final DataService dataService;
 
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/
     @PostMapping("/zoom")
@@ -59,23 +60,23 @@ public class WebhookController {
             }
 
             //webhook -> DB
-            WebhookEvent saved = dataService.saveWebhook(event, payload, json);
+            WebhookEvent saved = dataService.whookOps.saveWebhook(event, payload, json);
 
             //webhook -> API 호출 or DB 업데이트
             String objectId = saved.getObject().getId();
-            ZoomUser user;
+            ZoomUser user = null;
             switch (event) {
                 case "user.created":
                 case "user.updated":
                 case "user.deactivated":
                 case "user.activated":
                 case "user.invitation_accepted":
-                    dataService.readZoomUserByIdOrGetZoomUserAndSave(objectId);
+                    user = dataService.zoomOps.getZoomUser(objectId);
                     break;
                 case "user.deleted":
                 case "user.disassociated":
                     log.warn("[test] user.deleted / disassociated : {}", json);
-                    user = dataService.setUserIdDeleted(objectId);
+                    user = dataService.whookOps.setUserIdDeleted(objectId);
                     if (user == null) {
                         webSocketService.enqueueException(Map.of("event", "error", "message", "user.deleted / disassociated : " + objectId));
                     }
@@ -107,7 +108,7 @@ public class WebhookController {
         String jsonBody = objectMapper.writeValueAsString(json);
         String hashingSignature = SHA256Cipher.generateZoomHmac(secretToken, timestamp, jsonBody);
         boolean isZoomWebhook = hashingSignature.equals(signature);
-        log.info("VerifyWithZoomHeader : {} isZoomWebhook : {}", hashingSignature, isZoomWebhook);
+        log.debug("VerifyWithZoomHeader : {} isZoomWebhook : {}", hashingSignature, isZoomWebhook);
         return isZoomWebhook;
     }
 
@@ -117,7 +118,6 @@ public class WebhookController {
         String responseJson = objectMapper.writeValueAsString(
                 Map.of("plainToken", plainToken, "encryptedToken", encryptedToken)
         );
-        log.info("[test]endpoint.url_validation responseJSon :{}", responseJson);
         return responseJson;
     }
 }

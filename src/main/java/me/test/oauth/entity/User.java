@@ -43,6 +43,9 @@ public class User {
     @Column(name = "activated")
     private Integer activated;
 
+    @Column(name = "dept_index")
+    private Integer index;
+
     public void setUserType(Authority userType) {
         this.userType = userType;
     }

@@ -359,13 +359,15 @@ sequenceDiagram
 
 ```
 
-## 사용자 요청 기반 사용자 CRUD 처리 로직
-Zoom API 호출 성공 후에는 반드시 GET /users/{userId} 또는 삭제 상태를 기준으로 DB 를 최종적으로 Zoom 상태와 일관되도록 보정한다.
+## 사용자 요청 기반 줌사용자(ZoomUser) CRUD 처리 로직
+사용자 요청시 DB 직접 수정하지 않는다.
+Zoom API 호출 성공 후 webhook 수신하면 GET /users/{userId} 또는 이벤트 상태를 기준으로 DB 를 최종적으로 Zoom 상태와 일관되도록 보정한다.
+webhook 수신시 DB 에 일치하는 사용자가 없으면 DB 동기화를 위해 API 가 호출된다.
 
-1. 사용자 상세 조회	GET /users/{userId}	Zoom 응답 내용을 화면에 표시. (필요 시 DB 동기화 수행 가능)
-2. 사용자 생성	POST /users	생성 성공 시 → GET /users/{userId} 재조회 → DB 에 신규 저장
-3. 사용자 수정	PATCH /users/{userId}	수정 성공 시 → GET /users/{userId} 재조회 → DB 정보 갱신
-4. 사용자 삭제	DELETE /users/{userId}	삭제 성공 시 → DB 에서 deleted = true 로 표시 (소프트 삭제)
+1. 사용자 상세 조회	GET /users/{userId}	→ DB 에 신규 저장 → webhook 수신
+2. 사용자 생성	POST /users	생성 성공 시 → webhook 수신 → GET /users/{userId} 재조회 → DB 에 신규 저장 → webSocket 호출 사용자 전달
+3. 사용자 수정	PATCH /users/{userId}	수정 성공 시 → webhook 수신 → GET /users/{userId} 재조회 → DB 정보 갱신 → webSocket 호출 사용자 전달
+4. 사용자 삭제	DELETE /users/{userId}	삭제 성공 시 → webhook 수신 → DB 에서 deleted = true 로 표시 (소프트 삭제)
 
 ```mermaid
 
@@ -399,3 +401,21 @@ sequenceDiagram
     WH-->>Z: 응답 (성공)
 
 ```
+
+## 통합 사용자(DtoUser) CRUD 처리 로직 _ (2025.11.13)
+사용자 정보 변경은 “하나를 손대면 3개를 갱신해야” 한다.
+1. User (내부 DB) : empNo, dept_code, index, position 등 사내 직원정보
+2. ZoomUser (내부 DB) : id, dept_name, status 등 Zoom 계정정보
+3. Zoom API	Zoom 내부 계정 업데이트(API 호출)
+
+공통 필드
+* user.email = zoomUser.email (식별자)
+* user.username = zoomUser.displayName 
+* user.dept.dept_name = zoomUser.dept 
+* user.positon = zoomUser.jobTitle
+
+수정과정
+1. User 업데이트는 DtoUser db 를 조회
+2. 변경된 필드만 병합한 User merge 를 DB에 업데이트한다. ZoomUser 객체는 직접 업데이트 하지 않는다.
+3. 변경사항이 담긴 Map<String,Object> 을 바디에 담아 Zoom API Zoom 사용자 수정 PATCH /users/{userId} 까지만 진행한다.
+4. 성공 시 WebhookController 에 의해 [webhook 수신 → GET /users/{userId} 재조회 → DB 정보 갱신 → webSocket 호출 사용자 전달] 로직이 실행된다.

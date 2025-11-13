@@ -29,4 +29,27 @@ public interface UserRepository extends JpaRepository<User, String> {
     WHERE u.email = :email
     """)
         DtoUsers findByIdUserWithZoomUser(@Param("email") String email);
+
+    /** user & zoomUser 직원만 조회 가능**/
+    @Query("""
+    SELECT new me.test.oauth.dto.DtoUsers(u, zu)
+    FROM User u
+    JOIN ZoomUser zu ON u.email = zu.email
+    WHERE u.email IN :emails""")
+    List<DtoUsers> findAllUserWithZoomUserByEmail(List<String> emails);
+
+    /** user only 직원도 조회 가능**/
+    @Query("""
+    SELECT new me.test.oauth.dto.DtoUsers(u, zu)
+    FROM User u
+    LEFT JOIN ZoomUser zu ON u.email = zu.email
+    WHERE u.email IN :emails""")
+    List<DtoUsers> findAllDtoUserByEmail(List<String> emails);
+
+    /** user only 직원도 조회 가능**/
+    @Query("""
+    SELECT new me.test.oauth.dto.DtoUsers(u, zu)
+    FROM User u
+    LEFT JOIN ZoomUser zu ON u.email = zu.email""")
+    List<DtoUsers> findAllDtoUserByEmail();
 }
