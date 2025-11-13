@@ -13,6 +13,7 @@ import me.test.oauth.service.ZoomApiService;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import me.test.oauth.common.RequestLatencyTracker;
 
 import java.util.*;
 
@@ -26,6 +27,7 @@ public class RESTController {
     private final ZoomApiService zoomApiService;
     private final DataService dataService;
     private final ObjectMapper objectMapper;
+    private final RequestLatencyTracker tracker;
 
     /** 한 사용자 기준 1분에 한번만 상태변경 요청. **/
     @PostMapping("/zoomUser/update/presence_status/{userId}")
@@ -130,6 +132,7 @@ public class RESTController {
 
     @PostMapping("/userDetail/delete")
     public ResponseEntity<String> deleteZoomUserVue(@RequestBody String email) {
+        tracker.start(email);
         log.info("[test]deleteZoomUserVue : {}", email);
         ResponseEntity<String> response = zoomApiService.api("/users/"+email, HttpMethod.DELETE, null);
         return response;
@@ -138,6 +141,7 @@ public class RESTController {
     //동일사항이면 webhook 발생안함. 그냥 사용자 요청내용 다 담아서 보내면?
     @PostMapping("/userDetail/update/detail/{userId}")
     public ResponseEntity<DtoUsers> updateUserDetail(@PathVariable String userId, @RequestBody DtoUsers dtoUsers) {
+        tracker.start(userId);
         log.info("[test]updateUserDetail : {}, {}", userId, dtoUsers.toString());
         //기존사용자 정보 불러오기
         DtoUsers db = dataService.getZoomUserAndUserByEmail(userId);

@@ -10,7 +10,6 @@ import me.test.oauth.entity.ZoomUser;
 import me.test.oauth.entity.webhook.WebhookEvent;
 import me.test.oauth.service.DataService;
 import me.test.oauth.service.WebSocketService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +33,7 @@ public class WebhookController {
     private final ObjectMapper objectMapper = JsonUtil.getObjectMapper();
     private final WebSocketService webSocketService;
     private final DataService dataService;
+    private final RequestLatencyTracker tracker;
 
     /** zoom 이 보낸 webhook 이벤트를 받고 즉시 200 OK 응답을 보냄.**/
     @PostMapping("/zoom")
@@ -90,6 +90,9 @@ public class WebhookController {
                     log.info("[test] default event : {}", json);
                     break;
             }
+
+            String email = (user != null)? user.getEmail() : "";
+            tracker.end(email);
 
             //webhook -> 사용자
             payload.put("queueType", event);
